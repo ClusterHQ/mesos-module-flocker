@@ -23,3 +23,4 @@ Flocker Isolator integrates with Flocker Control Service (as opposed to Docker F
 
 ## Whats Next
 
+![screen shot](https://raw.github.com/clusterhq/mesos-module-flocker/master/img/flocker-resource-provider.png "fig 2. overview")
