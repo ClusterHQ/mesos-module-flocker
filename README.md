@@ -21,6 +21,9 @@ Flocker Isolator integrates with Flocker Control Service (as opposed to Docker F
 - Use richer feature set exposed by Flocker Control Service.
 - Flexibility for usage with containerizers other than Docker.
 
+### Env variables in isolator
+While resource attributes are being worked on (work in progress at Mesosphere), Flocker Isolator will use environment variables (similar to [dvdi](https://github.com/emccode/mesos-module-dvdi/blob/341d4126ad6de0cec0788d65cb214ae3875748a2/isolator/isolator/docker_volume_driver_isolator.hpp#L207)).
+
 ## Whats Next
 
 ### Flocker Resource Provider
@@ -45,3 +48,7 @@ Presenting these rich cluster-wide storage data to Mesos Master (and eventually 
 ![screen shot](https://raw.github.com/clusterhq/mesos-module-flocker/master/img/flocker-resource-provider.png "fig 2. overview")
 
 ETA on Resource Provider availability is January 2016.
+
+## Acknowledgements
+
+Many thanks to Adam Bordelon and Michael Park at Mesosphere for productive discussions around the design!
