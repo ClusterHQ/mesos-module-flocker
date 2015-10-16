@@ -61,8 +61,13 @@ public:
   //    variables.
   // 2. POST request to Flocker Control Service.
   // 3. Poll Flocker Control Service waiting for volume to manifest.
-  // 3. GET volume's mounted path (/flocker/uuid).
-  // 4. Add entry to hashmap that contains root mountpath indexed by ContainerId
+  //    Note: please update "executor_registration_timeout" flag
+  //    in case supported backends are expected to take more than
+  //    default 1 minute timeout while manifesting datasets (EBS,
+  //    for example, takes up to 360 seconds for attaching a volume).
+  //    Ref: http://mesos.apache.org/documentation/latest/configuration/
+  // 4. GET volume's mounted path (/flocker/uuid).
+  // 5. Add entry to hashmap that contains root mountpath indexed by ContainerId
   virtual process::Future<Option<CommandInfo>> prepare(
       const ContainerID& containerId,
       const ExecutorInfo& executorInfo,
