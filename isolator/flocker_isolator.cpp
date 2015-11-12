@@ -33,8 +33,6 @@
 
 #include <process/subprocess.hpp>
 
-#include "linux/fs.hpp"
-
 using namespace mesos::internal;
 
 using namespace process;
@@ -47,45 +45,37 @@ using std::array;
 using namespace mesos;
 using namespace mesos::slave;
 
-using mesos::slave::ExecutorRunState;
 using mesos::slave::Isolator;
-using mesos::slave::IsolatorProcess;
-using mesos::slave::Limitation;
 
 const char FlockerIsolatorProcess::prohibitedchars[NUM_PROHIBITED]  = {
-'%', '/', ':', ';', '\0',
-'<', '>', '|', '`', '$', '\'',
-'?', '^', '&', ' ', '{', '\"',
-'}', '[', ']', '\n', '\t', '\v', '\b', '\r', '\\' };
+        '%', '/', ':', ';', '\0',
+        '<', '>', '|', '`', '$', '\'',
+        '?', '^', '&', ' ', '{', '\"',
+        '}', '[', ']', '\n', '\t', '\v', '\b', '\r', '\\' };
 
 std::string FlockerIsolatorProcess::mountJsonFilename;
 
 FlockerIsolatorProcess::FlockerIsolatorProcess(
-	const Parameters& _parameters)
-  : parameters(_parameters) {}
-
-Try<Isolator*> FlockerIsolatorProcess::create(const Parameters& parameters)
-{
-  return new Isolator(process);
-}
+        const Parameters& _parameters)
+        : parameters(_parameters) {}
 
 FlockerIsolatorProcess::~FlockerIsolatorProcess() {}
 
-Future<Nothing> FlockerIsolatorProcess::recover(
-    const list<ExecutorRunState>& states,
-    const hashset<ContainerID>& orphans)
+process::Future<Nothing> FlockerIsolatorProcess::recover(
+        const std::list<ContainerState>& states,
+        const hashset<ContainerID>& orphans)
 {
-  LOG(INFO) << "FlockerIsolatorProcess recover() was called";
+    LOG(INFO) << "FlockerIsolatorProcess recover() was called";
 
-  return Nothing();
+    return Nothing();
 }
 
 // Attempts to unmount specified external mount, returns true on success
 // Also returns true so long as DVDCLI is successfully invoked,
 // even if a non-zero return code occurs
 bool FlockerIsolatorProcess::unmount(
-    const ExternalMount& em,
-    const std::string&   callerLabelForLogging ) const
+        const ExternalMount& em,
+        const std::string&   callerLabelForLogging ) const
 {
     LOG(INFO) << em << " is being unmounted on " << callerLabelForLogging;
 
@@ -94,8 +84,8 @@ bool FlockerIsolatorProcess::unmount(
 
 // Attempts to mount specified external mount, returns true on success
 std::string FlockerIsolatorProcess::mount(
-    const ExternalMount& em,
-    const std::string&   callerLabelForLogging) const
+        const ExternalMount& em,
+        const std::string&   callerLabelForLogging) const
 {
     LOG(INFO) << em << " is being mounted on " << callerLabelForLogging;
 
@@ -106,12 +96,12 @@ std::string FlockerIsolatorProcess::mount(
 
 std::ostream& FlockerIsolatorProcess::dumpInfos(std::ostream& out) const
 {
-  return out;
+    return out;
 }
 
 bool FlockerIsolatorProcess::containsProhibitedChars(const std::string& s) const
 {
-  return (string::npos != s.find_first_of(prohibitedchars, 0, NUM_PROHIBITED));
+    return (string::npos != s.find_first_of(prohibitedchars, 0, NUM_PROHIBITED));
 }
 
 // Prepare runs BEFORE a task is started
@@ -121,78 +111,77 @@ bool FlockerIsolatorProcess::containsProhibitedChars(const std::string& s) const
 // there are any problems parsing or mounting even one
 // mount, we want to exit with an error and no new
 // mounted volumes. Goal: make all mounts or none.
-Future<Option<CommandInfo>> FlockerIsolatorProcess::prepare(
-    const ContainerID& containerId,
-    const ExecutorInfo& executorInfo,
-    const string& directory,
-    const Option<string>& rootfs,
-    const Option<string>& user)
+Future<Option<ContainerPrepareInfo>> FlockerIsolatorProcess::prepare(
+        const ContainerID& containerId,
+        const ExecutorInfo& executorInfo,
+        const std::string& directory,
+        const Option<std::string>& user)
 {
-  LOG(INFO) << "Preparing external storage for container: "
-            << stringify(containerId);
+    LOG(INFO) << "Preparing external storage for container: "
+    << stringify(containerId);
 
-  return None();
+    return None();
 }
 
-Future<Limitation> FlockerIsolatorProcess::watch(
-    const ContainerID& containerId)
+process::Future<ContainerLimitation> watch(
+        const ContainerID& containerId)
 {
-  // No-op, for now.
+    // No-op, for now.
 
-  return Future<Limitation>();
+    return Future<ContainerLimitation>();
 }
 
 Future<Nothing> FlockerIsolatorProcess::update(
-    const ContainerID& containerId,
-    const Resources& resources)
+        const ContainerID& containerId,
+        const Resources& resources)
 {
-  // No-op, nothing enforced.
+    // No-op, nothing enforced.
 
-  return Nothing();
+    return Nothing();
 }
 
 
 Future<ResourceStatistics> FlockerIsolatorProcess::usage(
-    const ContainerID& containerId)
+        const ContainerID& containerId)
 {
-  // No-op, no usage gathered.
+    // No-op, no usage gathered.
 
-  return ResourceStatistics();
+    return ResourceStatistics();
 }
 
 process::Future<Nothing> FlockerIsolatorProcess::isolate(
-    const ContainerID& containerId,
-    pid_t pid)
+        const ContainerID& containerId,
+        pid_t pid)
 {
-  // No-op, isolation happens when mounting/unmounting in prepare/cleanup
-  return Nothing();
+    // No-op, isolation happens when mounting/unmounting in prepare/cleanup
+    return Nothing();
 }
 
 Future<Nothing> FlockerIsolatorProcess::cleanup(
-    const ContainerID& containerId)
+        const ContainerID& containerId)
 {
-  //    1. Get driver name and volume list from infos
-  //    2. Iterate list and perform unmounts
+    //    1. Get driver name and volume list from infos
+    //    2. Iterate list and perform unmounts
 
-  return Nothing();
+    return Nothing();
 
 }
 
 static Isolator* createFlockerIsolator(const Parameters& parameters)
 {
-  LOG(INFO) << "Loading Flocker Mesos Isolator module";
+    LOG(INFO) << "Loading Flocker Mesos Isolator module";
 
-  Try<Isolator*> result = FlockerIsolatorProcess::create(parameters);
+    Try<Isolator*> result = FlockerIsolatorProcess::create(parameters);
 
-  return result.get();
+    return result.get();
 }
 
 // Declares the isolator named com_clusterhq_flocker_FlockerIsolatorProcess
 mesos::modules::Module<Isolator> com_clusterhq_flocker_FlockerIsolatorProcess(
-    MESOS_MODULE_API_VERSION,
-    MESOS_VERSION,
-    "clusterhq{code}",
-    "info@clusterhq.com",
-    "Mesos Flocker Isolator module.",
-    NULL,
-    createFlockerIsolator);
+        MESOS_MODULE_API_VERSION,
+        MESOS_VERSION,
+        "clusterhq{code}",
+        "info@clusterhq.com",
+        "Mesos Flocker Isolator module.",
+        NULL,
+        createFlockerIsolator);

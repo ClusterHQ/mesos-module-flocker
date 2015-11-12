@@ -35,66 +35,54 @@
 namespace mesos {
 namespace slave {
 
-class FlockerIsolatorProcess: public mesos::slave::IsolatorProcess {
+class FlockerIsolatorProcess: public mesos::slave::Isolator {
 public:
   static Try<mesos::slave::Isolator*> create(const Parameters& parameters);
 
   virtual ~FlockerIsolatorProcess();
 
-  // Slave recovery is a feature of Mesos that allows task/executors
-  // to keep running if a slave process goes down, AND
-  // allows the slave process to reconnect with already running
-  // slaves when it restarts
-  // TODO This interface will change post 0.23.0 to pass a list of
-  // of container states which will assist in recovery,
-  // when this is available, code should use it.
-  virtual process::Future<Nothing> recover(
-      const std::list<mesos::slave::ExecutorRunState>& states,
-      const hashset<ContainerID>& orphans);
+    // Recover containers from the run states and the orphan containers
+    // (known to the launcher but not known to the slave) detected by
+    // the launcher.
+    virtual process::Future<Nothing> recover(
+            const std::list<ContainerState>& states,
+            const hashset<ContainerID>& orphans) = 0;
 
-  // Prepare runs BEFORE a task is started
-  // will check if the volume is already mounted and if not,
-  // will mount the volume
-  //
-  // 1. Get Flocker Control Service IP and PORT from environment
-  //    variables.
-  // 2. POST request to Flocker Control Service.
-  // 3. Poll Flocker Control Service waiting for volume to manifest.
-  //    Note: please update "executor_registration_timeout" flag
-  //    in case supported backends are expected to take more than
-  //    default 1 minute timeout while manifesting datasets (EBS,
-  //    for example, takes up to 360 seconds for attaching a volume).
-  //    Ref: http://mesos.apache.org/documentation/latest/configuration/
-  // 4. GET volume's mounted path (/flocker/uuid).
-  // 5. Add entry to hashmap that contains root mountpath indexed by ContainerId
-  virtual process::Future<Option<CommandInfo>> prepare(
-      const ContainerID& containerId,
-      const ExecutorInfo& executorInfo,
-      const std::string& directory,
-      const Option<std::string>& rootfs,
-      const Option<std::string>& user);
+    // Prepare for isolation of the executor. Any steps that require
+    // execution in the containerized context (e.g. inside a network
+    // namespace) can be returned in the optional CommandInfo and they
+    // will be run by the Launcher.
+    // TODO(idownes): Any URIs or Environment in the CommandInfo will be ignored; only the command value is used.
+    virtual process::Future<Option<ContainerPrepareInfo>> prepare(
+            const ContainerID& containerId,
+            const ExecutorInfo& executorInfo,
+            const std::string& directory,
+            const Option<std::string>& user) = 0;
 
-  // Nothing will be done at task start
-  virtual process::Future<Nothing> isolate(
-      const ContainerID& containerId,
-      pid_t pid);
+    // Isolate the executor.
+    virtual process::Future<Nothing> isolate(
+            const ContainerID& containerId,
+            pid_t pid) = 0;
 
-  // no-op, mount occurs at prepare
-  virtual process::Future<mesos::slave::Limitation> watch(
-      const ContainerID& containerId);
+    // Watch the containerized executor and report if any resource
+    // constraint impacts the container, e.g., the kernel killing some
+    // processes.
+    virtual process::Future<ContainerLimitation> watch(
+            const ContainerID& containerId) = 0;
 
-  // no-op, nothing enforced
-  virtual process::Future<Nothing> update(
-      const ContainerID& containerId,
-      const Resources& resources);
+    // Update the resources allocated to the container.
+    virtual process::Future<Nothing> update(
+            const ContainerID& containerId,
+            const Resources& resources) = 0;
 
-  // no-op, no usage stats gathered
-  virtual process::Future<ResourceStatistics> usage(
-      const ContainerID& containerId);
+    // Gather resource usage statistics for the container.
+    virtual process::Future<ResourceStatistics> usage(
+            const ContainerID& containerId) = 0;
 
-  // no-op, lazy unmount when necessary
-  virtual process::Future<Nothing> cleanup(
-      const ContainerID& containerId);
+    // Clean up a terminated container. This is called after the
+    // executor and all processes in the container have terminated.
+    virtual process::Future<Nothing> cleanup(
+            const ContainerID& containerId) = 0;
 
 private:
   FlockerIsolatorProcess(const Parameters& parameters);
@@ -125,7 +113,7 @@ private:
 
     ExternalMountID getExternalMountId(void) const {
         size_t seed = 0;
-        std::string s1(boost::to_lower_copy(volumeId));
+        std::string s1(volumeId);
         boost::hash_combine(seed, s1);
         return seed;
     }
