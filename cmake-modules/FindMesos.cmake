@@ -39,7 +39,11 @@ SET (Mesos_BUILD_DIR $ENV{MESOS_ROOT}/build)
 message(STATUS "Using mesos build folder: \"${Mesos_BUILD_DIR}\"")
 
 # Set Mesos library.
-SET (Mesos_LIBRARY $ENV{MESOS_ROOT}/build/src/.libs/libmesos.so)
+FIND_LIBRARY (Mesos_LIBRARY
+        NAMES mesos
+        HINTS
+        $ENV{MESOS_ROOT}/build/src/.libs
+)
 message(STATUS "Using mesos lib: \"${Mesos_LIBRARY}\"")
 
 # Find Mesos src folder.
