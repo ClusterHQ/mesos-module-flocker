@@ -45,18 +45,12 @@ SET (Mesos_ROOT_DIR $ENV{MESOS_ROOT})
 message(STATUS "Using mesos root folder: \"${Mesos_ROOT_DIR}\"")
 
 # Find Mesos build folder.
-FIND_PATH (Mesos_BUILD_DIR mesos-master
-    PATH $ENV{MESOS_ROOT}/build
-    NO_DEFAULT_PATH
-)
+SET (Mesos_BUILD_DIR $ENV{MESOS_ROOT}/build)
+message(STATUS "Using mesos build folder: \"${Mesos_BUILD_DIR}\"")
 
 # Find Mesos src folder.
-FIND_PATH (Mesos_SRC_DIR slave
-    PATH $ENV{MESOS_ROOT}/src
-    NO_DEFAULT_PATH
-)
-
-message(STATUS "Using mesos build folder: \"${Mesos_BUILD_DIR}\"")
+SET (Mesos_SRC_DIR $ENV{MESOS_ROOT}/src)
+message(STATUS "Using mesos build folder: \"${Mesos_SRC_DIR}\"")
 
 # Locate release and debug versions of the library.
 FindMesosLibrary(Mesos_LIBRARY mesos)
