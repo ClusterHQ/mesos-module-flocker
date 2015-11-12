@@ -27,16 +27,6 @@
 #    TARGET_LINK_LIBRARIES (MesosFramework ${Mesos_LIBRARIES})
 #
 
-
-# Finds particular version (debug | release, .a | .so) of Mesos.
-FUNCTION (FindMesosLibrary libvar libname)
-    FIND_LIBRARY (${libvar}
-        NAMES ${libname}
-        HINTS $ENV{MESOS_ROOT} ${Mesos_BUILD_DIR}/src
-        PATH_SUFFIXES lib64 ./libs
-    )
-ENDFUNCTION (FindMesosLibrary libvar libname)
-
 message(STATUS "Searching for mesos root in: \"$ENV{MESOS_ROOT}\"")
 
 # Find Mesos root folder, which contains "include/mesos/mesos.proto" file.
@@ -48,14 +38,13 @@ message(STATUS "Using mesos root folder: \"${Mesos_ROOT_DIR}\"")
 SET (Mesos_BUILD_DIR $ENV{MESOS_ROOT}/build)
 message(STATUS "Using mesos build folder: \"${Mesos_BUILD_DIR}\"")
 
+# Set Mesos library.
+SET (Mesos_LIBRARY $ENV{MESOS_ROOT}/build/src/.libs/libmesos.so)
+message(STATUS "Using mesos lib: \"${Mesos_LIBRARY}\"")
+
 # Find Mesos src folder.
 SET (Mesos_SRC_DIR $ENV{MESOS_ROOT}/src)
-message(STATUS "Using mesos build folder: \"${Mesos_SRC_DIR}\"")
-
-# Locate release and debug versions of the library.
-FindMesosLibrary(Mesos_LIBRARY mesos)
-
-message(STATUS "Using mesos lib: \"${Mesos_LIBRARY}\"")
+message(STATUS "Using mesos src folder: \"${Mesos_SRC_DIR}\"")
 
 # Use the standard CMake tool to handle FIND_PACKAGE() options and set the
 # MESOS_FOUND variable.
