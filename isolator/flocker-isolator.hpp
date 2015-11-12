@@ -21,7 +21,6 @@
 #define SRC_FLOCKER_ISOLATOR_HPP_
 #include <iostream>
 #include <boost/functional/hash.hpp>
-#include <boost/algorithm/string.hpp>
 #include <mesos/mesos.hpp>
 #include <mesos/slave/isolator.hpp>
 #include <slave/flags.hpp>

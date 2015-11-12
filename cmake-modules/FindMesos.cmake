@@ -35,26 +35,33 @@ FUNCTION (FindMesosLibrary libvar libname)
         HINTS $ENV{MESOS_ROOT} ${Mesos_BUILD_DIR}/src
         PATH_SUFFIXES lib64 ./libs
     )
-
-    # This shows the variable only in the advanced mode of cmake-gui.
-    MARK_AS_ADVANCED (${libvar})
 ENDFUNCTION (FindMesosLibrary libvar libname)
 
+message(STATUS "Searching for mesos root in: \"$ENV{MESOS_ROOT}\"")
 
 # Find Mesos root folder, which contains "include/mesos/mesos.proto" file.
-FIND_PATH (Mesos_ROOT_DIR include/mesos/mesos.proto
-    HINTS $ENV{MESOS_ROOT}/include
-)
-MARK_AS_ADVANCED (Mesos_ROOT_DIR)
+SET (Mesos_ROOT_DIR $ENV{MESOS_ROOT})
+
+message(STATUS "Using mesos root folder: \"${Mesos_ROOT_DIR}\"")
 
 # Find Mesos build folder.
 FIND_PATH (Mesos_BUILD_DIR mesos-master
-    HINTS $ENV{MESOS_ROOT}/build
+    PATH $ENV{MESOS_ROOT}/build
+    NO_DEFAULT_PATH
 )
-MARK_AS_ADVANCED (Mesos_BUILD_DIR)
+
+# Find Mesos src folder.
+FIND_PATH (Mesos_SRC_DIR slave
+    PATH $ENV{MESOS_ROOT}/src
+    NO_DEFAULT_PATH
+)
+
+message(STATUS "Using mesos build folder: \"${Mesos_BUILD_DIR}\"")
 
 # Locate release and debug versions of the library.
 FindMesosLibrary(Mesos_LIBRARY mesos)
+
+message(STATUS "Using mesos lib: \"${Mesos_LIBRARY}\"")
 
 # Use the standard CMake tool to handle FIND_PACKAGE() options and set the
 # MESOS_FOUND variable.
@@ -74,5 +81,8 @@ IF (Mesos_FOUND)
     SET (Stout_INCLUDE_DIR ${Mesos_ROOT_DIR}/3rdparty/libprocess/3rdparty/stout/include)
     SET (Libprocess_INCLUDE_DIR ${Mesos_ROOT_DIR}/3rdparty/libprocess/include)
     SET (Mesos_Boost_INCLUDE_DIR ${Mesos_BUILD_DIR}/3rdparty/libprocess/3rdparty/boost-1.53.0)
+    SET (Mesos_protobuf_INCLUDE_DIR ${Mesos_BUILD_DIR}/3rdparty/libprocess/3rdparty/protobuf-2.5.0/src)
+    SET (Mesos_glog_INCLUDE_DIR ${Mesos_BUILD_DIR}/3rdparty/libprocess/3rdparty/glog-0.3.3/src)
+    SET (Mesos_picojson_INCLUDE_DIR ${Mesos_BUILD_DIR}/3rdparty/libprocess/3rdparty/picojson-1.3.0)
     SET (Mesos_LIBRARIES ${Mesos_LIBRARY})
 ENDIF (Mesos_FOUND)
