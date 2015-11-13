@@ -4,6 +4,7 @@
 
 using namespace mesos::slave;
 using mesos::slave::ContainerPrepareInfo;
+using mesos::slave::ContainerLimitation;
 
 const char FlockerIsolatorProcess::prohibitedchars[NUM_PROHIBITED]  = {
         '%', '/', ':', ';', '\0',
