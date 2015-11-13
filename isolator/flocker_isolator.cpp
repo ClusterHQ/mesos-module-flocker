@@ -1,4 +1,7 @@
 #include "flocker-isolator.hpp"
+#include <mesos/module.hpp>
+#include <mesos/module/isolator.hpp>
+
 using namespace mesos::slave;
 using mesos::slave::ContainerPrepareInfo;
 
@@ -8,7 +11,7 @@ const char FlockerIsolatorProcess::prohibitedchars[NUM_PROHIBITED]  = {
         '?', '^', '&', ' ', '{', '\"',
         '}', '[', ']', '\n', '\t', '\v', '\b', '\r', '\\' };
 
-FlockerIsolatorProcess::FlockerIsolatorProcess(const Parameters& parameters) {}
+FlockerIsolatorProcess::FlockerIsolatorProcess(const mesos::Parameters& parameters) {}
 
 FlockerIsolatorProcess::~FlockerIsolatorProcess() {}
 
@@ -96,3 +99,22 @@ std::ostream &FlockerIsolatorProcess::dumpInfos(std::ostream &out) const
 {
     return out;
 }
+
+static Isolator* createFlockerIsolator(const mesos::Parameters& parameters)
+{
+    LOG(INFO) << "Loading Flocker Mesos Isolator module";
+
+    Try<Isolator*> result = FlockerIsolatorProcess::create(parameters);
+
+    return result.get();
+}
+
+// Declares the isolator named com_clusterhq_flocker_FlockerIsolatorProcess
+mesos::modules::Module<Isolator> com_clusterhq_flocker_FlockerIsolatorProcess(
+        MESOS_MODULE_API_VERSION,
+        MESOS_VERSION,
+        "clusterhq{code}",
+        "info@clusterhq.com",
+        "Mesos Flocker Isolator module.",
+        NULL,
+        createFlockerIsolator);
