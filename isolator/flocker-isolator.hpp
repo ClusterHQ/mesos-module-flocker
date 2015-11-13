@@ -46,7 +46,7 @@ public:
     // the launcher.
     virtual process::Future<Nothing> recover(
             const std::list<ContainerState>& states,
-            const hashset<ContainerID>& orphans) = 0;
+            const hashset<ContainerID> &orphans);
 
     // Prepare for isolation of the executor. Any steps that require
     // execution in the containerized context (e.g. inside a network
@@ -57,32 +57,32 @@ public:
             const ContainerID& containerId,
             const ExecutorInfo& executorInfo,
             const std::string& directory,
-            const Option<std::string>& user) = 0;
+            const Option<std::string> &user);
 
     // Isolate the executor.
     virtual process::Future<Nothing> isolate(
             const ContainerID& containerId,
-            pid_t pid) = 0;
+            pid_t pid);
 
     // Watch the containerized executor and report if any resource
     // constraint impacts the container, e.g., the kernel killing some
     // processes.
     virtual process::Future<ContainerLimitation> watch(
-            const ContainerID& containerId) = 0;
+            const ContainerID &containerId);
 
     // Update the resources allocated to the container.
     virtual process::Future<Nothing> update(
             const ContainerID& containerId,
-            const Resources& resources) = 0;
+            const Resources &resources);
 
     // Gather resource usage statistics for the container.
     virtual process::Future<ResourceStatistics> usage(
-            const ContainerID& containerId) = 0;
+            const ContainerID &containerId);
 
     // Clean up a terminated container. This is called after the
     // executor and all processes in the container have terminated.
     virtual process::Future<Nothing> cleanup(
-            const ContainerID& containerId) = 0;
+            const ContainerID &containerId);
 
 private:
   FlockerIsolatorProcess(const Parameters& parameters);

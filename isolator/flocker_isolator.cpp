@@ -17,7 +17,7 @@ FlockerIsolatorProcess::~FlockerIsolatorProcess() {}
 
 Try<mesos::slave::Isolator*> FlockerIsolatorProcess::create(const Parameters& parameters)
 {
-//    return new FlockerIsolatorProcess(parameters);
+    return new FlockerIsolatorProcess(parameters);
 }
 
 process::Future<Nothing> FlockerIsolatorProcess::recover(
