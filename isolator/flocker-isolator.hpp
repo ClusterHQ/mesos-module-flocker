@@ -66,7 +66,8 @@ public:
     //    for example, takes up to 360 seconds for attaching a volume).
     //    Ref: http://mesos.apache.org/documentation/latest/configuration/
     // 4. GET volume's mounted path (/flocker/uuid).
-    // 5. Add entry to hashmap that contains root mountpath indexed by ContainerId    virtual process::Future<Option<ContainerPrepareInfo>> prepare(
+    // 5. Add entry to hashmap that contains root mountpath indexed by ContainerId
+    virtual process::Future<Option<ContainerPrepareInfo>> prepare(
             const ContainerID& containerId,
             const ExecutorInfo& executorInfo,
             const std::string& directory,
