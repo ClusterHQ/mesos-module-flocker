@@ -7,3 +7,11 @@ add_library(isolator SHARED
 target_link_libraries(isolator
         ${Mesos_LIBRARIES}
         )
+
+add_executable(test_flocker_isolator
+        test_flocker_isolator.cpp
+        )
+
+target_link_libraries(test_flocker_isolator
+        isolator
+        ${Mesos_LIBRARIES})

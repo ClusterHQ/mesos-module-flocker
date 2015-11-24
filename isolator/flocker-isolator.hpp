@@ -35,11 +35,11 @@
 namespace mesos {
 namespace slave {
 
-class FlockerIsolatorProcess: public mesos::slave::Isolator {
+class  FlockerIsolator: public mesos::slave::Isolator {
 public:
   static Try<mesos::slave::Isolator*> create(const Parameters& parameters);
 
-  virtual ~FlockerIsolatorProcess();
+  virtual ~ FlockerIsolator();
 
     // Recover containers from the run states and the orphan containers
     // (known to the launcher but not known to the slave) detected by
@@ -103,7 +103,7 @@ public:
             const ContainerID &containerId);
 
 private:
-  FlockerIsolatorProcess(const Parameters& parameters);
+   FlockerIsolator(const Parameters& parameters);
 
   const Parameters parameters;
 
