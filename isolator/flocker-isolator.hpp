@@ -52,14 +52,28 @@ public:
     // execution in the containerized context (e.g. inside a network
     // namespace) can be returned in the optional CommandInfo and they
     // will be run by the Launcher.
-    // TODO(idownes): Any URIs or Environment in the CommandInfo will be ignored; only the command value is used.
-    virtual process::Future<Option<ContainerPrepareInfo>> prepare(
+    // Prepare runs BEFORE a task is started
+    // will check if the volume is already mounted and if not,
+    // will mount the volume
+    //
+    // 1. Get Flocker Control Service IP and PORT from environment
+    //    variables.
+    // 2. POST request to Flocker Control Service.
+    // 3. Poll Flocker Control Service waiting for volume to manifest.
+    //    Note: please update "executor_registration_timeout" flag
+    //    in case supported backends are expected to take more than
+    //    default 1 minute timeout while manifesting datasets (EBS,
+    //    for example, takes up to 360 seconds for attaching a volume).
+    //    Ref: http://mesos.apache.org/documentation/latest/configuration/
+    // 4. GET volume's mounted path (/flocker/uuid).
+    // 5. Add entry to hashmap that contains root mountpath indexed by ContainerId    virtual process::Future<Option<ContainerPrepareInfo>> prepare(
             const ContainerID& containerId,
             const ExecutorInfo& executorInfo,
             const std::string& directory,
             const Option<std::string> &user);
 
     // Isolate the executor.
+    // Nothing will be done at task start
     virtual process::Future<Nothing> isolate(
             const ContainerID& containerId,
             pid_t pid);
@@ -67,10 +81,12 @@ public:
     // Watch the containerized executor and report if any resource
     // constraint impacts the container, e.g., the kernel killing some
     // processes.
+    // no-op, mount occurs at prepare
     virtual process::Future<ContainerLimitation> watch(
             const ContainerID &containerId);
 
     // Update the resources allocated to the container.
+    // no-op, no usage stats gathered
     virtual process::Future<Nothing> update(
             const ContainerID& containerId,
             const Resources &resources);
@@ -81,6 +97,7 @@ public:
 
     // Clean up a terminated container. This is called after the
     // executor and all processes in the container have terminated.
+    // no-op, lazy unmount when necessary
     virtual process::Future<Nothing> cleanup(
             const ContainerID &containerId);
 
