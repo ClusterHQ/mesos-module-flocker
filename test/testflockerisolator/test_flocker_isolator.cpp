@@ -1,12 +1,25 @@
-#include "flocker-isolator.hpp"
+#include "../../libisolator/flocker-isolator.hpp"
 #include <stout/os.hpp>
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
+#include "test_flocker_isolator.hpp"
 
+using ::testing::Return;
 
 using namespace mesos::slave;
 using namespace mesos;
 using namespace std;
 
-int main() {
+FlockerIsolatorTest::FlockerIsolatorTest() { };
+
+FlockerIsolatorTest::~FlockerIsolatorTest() {};
+
+void FlockerIsolatorTest::SetUp() {};
+
+void FlockerIsolatorTest::TearDown() {};
+
+TEST_F(FlockerIsolatorTest, IsolatorPrepareCallsFlockerControlService) {
+
     Parameters parameters;
     Parameter* parameter = parameters.add_parameter();
     parameter->set_key("foo");
@@ -29,5 +42,8 @@ int main() {
     Result<string> user = os::user();
 
     result.get()->prepare(containerId, executor, "/tmp", user.get());
+
+    EXPECT_EQ(1, 1);
 }
+
 

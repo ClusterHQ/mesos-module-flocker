@@ -36,5 +36,9 @@ if(APPLE AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
 endif(APPLE AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
 
+enable_testing()
+
 # Isolator
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/isolator")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/libisolator")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")
+
