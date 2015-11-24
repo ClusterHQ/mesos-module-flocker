@@ -49,4 +49,6 @@ set_target_properties(libgmock PROPERTIES
 # I couldn't make it work with INTERFACE_INCLUDE_DIRECTORIES
 include_directories("${source_dir}/include")
 
+include_directories("build/test/gmock/src/gmock/include/gmock")
+
 add_subdirectory(testflockerisolator)
