@@ -64,7 +64,7 @@ process::Future<ContainerLimitation>  FlockerIsolator::watch(
     LOG(INFO) << "Watch containerId: " << containerId;
 
     // No-op, for now.
-    return ContainerLimitation();
+    return process::Future<ContainerLimitation>();
 }
 
 process::Future<Nothing>  FlockerIsolator::update(
