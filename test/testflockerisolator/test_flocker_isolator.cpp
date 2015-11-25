@@ -18,14 +18,43 @@ void FlockerIsolatorTest::SetUp() {};
 
 void FlockerIsolatorTest::TearDown() {};
 
+TEST_F(FlockerIsolatorTest, IsolatorCreateSetsFlockerIpAndPort) {
+    Parameters parameters;
+
+    string flockerControlIp = "192.1.2.3";
+    Parameter* parameter = parameters.add_parameter();
+    parameter->set_key("flocker_control_ip");
+    parameter->set_value(flockerControlIp);
+
+    int flockerControlPort = 4523;
+    parameter = parameters.add_parameter();
+    parameter->set_key("flocker_control_port");
+    parameter->set_value(stringify(flockerControlPort));
+
+    Try<FlockerIsolator*> result = FlockerIsolator::create(parameters);
+    if (result.isError()) {
+        cerr << "Could not create Flocker isolator" << endl;
+    }
+
+    EXPECT_EQ(flockerControlIp, result.get()->getFlockerControlIp());
+    EXPECT_EQ(flockerControlPort, result.get()->getFlockerControlPort());
+}
+
 TEST_F(FlockerIsolatorTest, IsolatorPrepareCallsFlockerControlService) {
 
     Parameters parameters;
-    Parameter* parameter = parameters.add_parameter();
-    parameter->set_key("foo");
-    parameter->set_value("foovalue");
 
-    Try<Isolator*> result = FlockerIsolator::create(parameters);
+    const char *flockerControlIp = "192.1.2.3";
+    Parameter* parameter = parameters.add_parameter();
+    parameter->set_key("flocker_control_ip");
+    parameter->set_value(flockerControlIp);
+
+    const char *flockerControlPort = "4523";
+    parameter = parameters.add_parameter();
+    parameter->set_key("flocker_control_port");
+    parameter->set_value(flockerControlPort);
+
+    Try<FlockerIsolator*> result = FlockerIsolator::create(parameters);
     if (result.isError()) {
         cerr << "Could not create Flocker isolator" << endl;
     }
