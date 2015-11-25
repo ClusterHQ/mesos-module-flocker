@@ -40,6 +40,40 @@ TEST_F(FlockerIsolatorTest, IsolatorCreateSetsFlockerIpAndPort) {
     EXPECT_EQ(flockerControlPort, result.get()->getFlockerControlPort());
 }
 
+TEST_F(FlockerIsolatorTest, IsolatorCreateWithoutParametersReturnsError) {
+    Parameters parameters;
+
+    Try<FlockerIsolator*> result = FlockerIsolator::create(parameters);
+
+    EXPECT_TRUE(result.isError());
+}
+
+TEST_F(FlockerIsolatorTest, IsolatorCreateWithoutIpReturnsError) {
+    Parameters parameters;
+
+    int flockerControlPort = 4523;
+    Parameter* parameter = parameters.add_parameter();
+    parameter->set_key("flocker_control_port");
+    parameter->set_value(stringify(flockerControlPort));
+
+    Try<FlockerIsolator*> result = FlockerIsolator::create(parameters);
+
+    EXPECT_TRUE(result.isError());
+}
+
+TEST_F(FlockerIsolatorTest, IsolatorCreateWithoutPortReturnsError) {
+    Parameters parameters;
+
+    string flockerControlIp = "192.1.2.3";
+    Parameter* parameter = parameters.add_parameter();
+    parameter->set_key("flocker_control_ip");
+    parameter->set_value(flockerControlIp);
+
+    Try<FlockerIsolator*> result = FlockerIsolator::create(parameters);
+
+    EXPECT_TRUE(result.isError());
+}
+
 TEST_F(FlockerIsolatorTest, IsolatorPrepareCallsFlockerControlService) {
 
     Parameters parameters;

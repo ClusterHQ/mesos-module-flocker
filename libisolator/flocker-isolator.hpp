@@ -107,7 +107,8 @@ public:
     std::string getFlockerControlIp();
 
 private:
-   FlockerIsolator(const Parameters& parameters);
+
+  FlockerIsolator(const std::string flockerControlIp, uint16_t flockerControlPort);
 
   const Parameters parameters;
 

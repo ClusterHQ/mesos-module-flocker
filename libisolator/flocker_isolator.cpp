@@ -14,22 +14,9 @@ const char  FlockerIsolator::prohibitedchars[NUM_PROHIBITED]  = {
         '?', '^', '&', ' ', '{', '\"',
         '}', '[', ']', '\n', '\t', '\v', '\b', '\r', '\\' };
 
- FlockerIsolator:: FlockerIsolator(const mesos::Parameters& parameters) {
-     if (parameters.parameter_size() != 2) {
-         std::cerr << "Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively";
-         exit(-1);
-     }
-
-     // TODO: Validate IP address
-     this->flockerControlIp = parameters.parameter(0).value();
-
-     Try<uint16_t> flockerControlPort = numify<uint16_t>(parameters.parameter(1).value());
-     if (!flockerControlPort.isSome()) {
-         std::cerr << "Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively";
-         exit(-1);
-     }
-
-     this->flockerControlPort = flockerControlPort.get();
+ FlockerIsolator::FlockerIsolator(const std::string flockerControlIp, uint16_t flockerControlPort) {
+    this->flockerControlIp = flockerControlIp;
+    this->flockerControlPort = flockerControlPort;
  }
 
  FlockerIsolator::~ FlockerIsolator() {}
@@ -38,7 +25,20 @@ Try<mesos::slave::FlockerIsolator*>  FlockerIsolator::create(const Parameters& p
 {
     LOG(INFO) << "Create isolator process";
 
-    return new FlockerIsolator(parameters);
+    if (parameters.parameter_size() != 2) {
+        std::cerr << "Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively" << std::endl;
+        return Error("Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively");
+    }
+
+    // TODO: Validate IP address
+
+    Try<uint16_t> flockerControlPort = numify<uint16_t>(parameters.parameter(1).value());
+    if (!flockerControlPort.isSome()) {
+        std::cerr << "Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively" << std::endl;
+        return Error("Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively");
+    }
+
+    return new FlockerIsolator(parameters.parameter(0).value(), flockerControlPort.get());
 }
 
 process::Future<Nothing>  FlockerIsolator::recover(
@@ -159,3 +159,4 @@ mesos::modules::Module<Isolator> com_clusterhq_flocker_FlockerIsolator(
         "Mesos Flocker Isolator module.",
         NULL,
         createFlockerIsolator);
+
