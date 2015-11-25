@@ -23,7 +23,7 @@ const char  FlockerIsolator::prohibitedchars[NUM_PROHIBITED]  = {
 
 Try<mesos::slave::FlockerIsolator*>  FlockerIsolator::create(const Parameters& parameters)
 {
-    LOG(INFO) << "Create isolator process";
+    LOG(INFO) << "Creating FlockerIsolator";
 
     if (parameters.parameter_size() != 2) {
         std::cerr << "Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively" << std::endl;
