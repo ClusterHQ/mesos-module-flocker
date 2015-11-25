@@ -37,7 +37,7 @@ namespace slave {
 
 class  FlockerIsolator: public mesos::slave::Isolator {
 public:
-  static Try<mesos::slave::Isolator*> create(const Parameters& parameters);
+  static Try<mesos::slave::FlockerIsolator*> create(const Parameters& parameters);
 
   virtual ~ FlockerIsolator();
 
@@ -101,6 +101,10 @@ public:
     // no-op, lazy unmount when necessary
     virtual process::Future<Nothing> cleanup(
             const ContainerID &containerId);
+
+    uint16_t getFlockerControlPort();
+
+    std::string getFlockerControlIp();
 
 private:
    FlockerIsolator(const Parameters& parameters);
@@ -185,14 +189,16 @@ private:
 
   static constexpr const char* FLOCKER_MOUNT_PREFIX       = "/flocker/";
 
-  static constexpr const char* FLOCKER_CONTROL_IP        = "FLOCKER_CONTROL_IP";
-  static constexpr const char* FLOCKER_CONTROL_PORT      = "FLOCKER_CONTROL_PORT";
-
   static constexpr const char* FLOCKER_MOUNTLIST_DEFAULT_DIR = "/var/lib/mesos/flocker/";
   static constexpr const char* FLOCKER_MOUNTLIST_FILENAME   = "flockermounts.json";
   static constexpr const char* FLOCKER_WORKDIR_PARAM_NAME   = "work_dir";
 
   static std::string mountJsonFilename;
+
+  std::string flockerControlIp;
+
+  uint16_t flockerControlPort;
+
 };
 
 } /* namespace slave */

@@ -14,13 +14,30 @@ const char  FlockerIsolator::prohibitedchars[NUM_PROHIBITED]  = {
         '?', '^', '&', ' ', '{', '\"',
         '}', '[', ']', '\n', '\t', '\v', '\b', '\r', '\\' };
 
- FlockerIsolator:: FlockerIsolator(const mesos::Parameters& parameters) {}
+ FlockerIsolator:: FlockerIsolator(const mesos::Parameters& parameters) {
+     if (parameters.parameter_size() != 2) {
+         std::cerr << "Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively";
+         exit(-1);
+     }
+
+     // TODO: Validate IP address
+     this->flockerControlIp = parameters.parameter(0).value();
+
+     Try<uint16_t> flockerControlPort = numify<uint16_t>(parameters.parameter(1).value());
+     if (!flockerControlPort.isSome()) {
+         std::cerr << "Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively";
+         exit(-1);
+     }
+
+     this->flockerControlPort = flockerControlPort.get();
+ }
 
  FlockerIsolator::~ FlockerIsolator() {}
 
-Try<mesos::slave::Isolator*>  FlockerIsolator::create(const Parameters& parameters)
+Try<mesos::slave::FlockerIsolator*>  FlockerIsolator::create(const Parameters& parameters)
 {
     LOG(INFO) << "Create isolator process";
+
     return new FlockerIsolator(parameters);
 }
 
@@ -120,9 +137,17 @@ static Isolator* createFlockerIsolator(const mesos::Parameters& parameters)
 {
     LOG(INFO) << "Loading Flocker Mesos Isolator module";
 
-    Try<Isolator*> result =  FlockerIsolator::create(parameters);
+    Try<FlockerIsolator*> result =  FlockerIsolator::create(parameters);
 
     return result.get();
+}
+
+uint16_t FlockerIsolator::getFlockerControlPort() {
+    return flockerControlPort;
+}
+
+std::string FlockerIsolator::getFlockerControlIp() {
+    return flockerControlIp;
 }
 
 // Declares the isolator named com_clusterhq_flocker_ FlockerIsolator
