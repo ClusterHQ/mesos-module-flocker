@@ -56,12 +56,42 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         const Option<std::string>& user)
 {
     LOG(INFO) << "Preparing external storage for container: " << stringify(containerId);
+    LOG(INFO) << "ExecutorInfo: " << stringify(executorInfo);
+    LOG(INFO) << "Directory: " << directory;
 
-    const http::URL url = http::URL("http", "google.com");
-    process::Future<http::Response> response = process::http::get(url);
+    // Determine the source of the mount.
+    std::string flockerDir = path::join("/flocker",
+                                        "test"); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
 
-    std::cout << response.get().body;
+    // Determine the target of the mount.
+    std::string userDir;
+    userDir = "/tmp/test";  // This should be the user specified path
 
+    // If the user dir doesn't exist on the host, create.
+    if (!os::exists(userDir)) {
+        Try<Nothing> mkdir = os::mkdir(userDir);
+        if (mkdir.isError()) {
+            LOG(ERROR) << "Failed to create the target of the mount at '" +
+                          userDir << "': " << mkdir.error();
+            return None();
+        }
+    }
+
+    // Run the bind command
+    Try<std::string> retcode = os::shell("%s %s %s",
+                                         "mount --rbind", // Do we need -n here? Do we want it to appear in /etc/mtab?
+                                         flockerDir.c_str(),
+                                         userDir.c_str());
+
+    if (retcode.isError()) {
+        LOG(ERROR) << "mount --rbind" << " failed to execute on "
+        << flockerDir
+        << retcode.error();
+    } else {
+        LOG(INFO) << "mount --rbind" << " mounted on:"
+        << userDir;
+
+    }
     return None();
 }
 
