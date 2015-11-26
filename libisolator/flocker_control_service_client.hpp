@@ -7,6 +7,11 @@
 
 using namespace std;
 
+/**
+ * Client for interacting with the Flocker Control Service.
+ *
+ * Supports retrieving the node id and creating a dataset.
+ */
 class FlockerControlServiceClient
 {
 public:
