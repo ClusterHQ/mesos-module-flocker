@@ -1,8 +1,13 @@
 #include "flocker-isolator.hpp"
+#include "flocker_control_service_client.hpp"
 #include <mesos/module.hpp>
 #include <mesos/module/isolator.hpp>
+#include <stout/os/posix/shell.hpp>
+#include <stout/try.hpp>
 
 using namespace mesos::slave;
+using namespace process;
+
 using mesos::slave::ContainerPrepareInfo;
 using mesos::slave::ContainerLimitation;
 
@@ -15,8 +20,7 @@ const char  FlockerIsolator::prohibitedchars[NUM_PROHIBITED]  = {
         '}', '[', ']', '\n', '\t', '\v', '\b', '\r', '\\' };
 
  FlockerIsolator::FlockerIsolator(const std::string flockerControlIp, uint16_t flockerControlPort) {
-    this->flockerControlIp = flockerControlIp;
-    this->flockerControlPort = flockerControlPort;
+    this->flockerControlServiceClient = new FlockerControlServiceClient(flockerControlIp, flockerControlPort);
  }
 
  FlockerIsolator::~ FlockerIsolator() {}
@@ -41,7 +45,7 @@ Try<mesos::slave::FlockerIsolator*>  FlockerIsolator::create(const Parameters& p
     return new FlockerIsolator(parameters.parameter(0).value(), flockerControlPort.get());
 }
 
-process::Future<Nothing>  FlockerIsolator::recover(
+Future<Nothing>  FlockerIsolator::recover(
         const std::list<ContainerState>& states,
         const hashset<ContainerID>& orphans)
 {
@@ -49,7 +53,7 @@ process::Future<Nothing>  FlockerIsolator::recover(
     return Nothing();
 }
 
-process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
+Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         const ContainerID& containerId,
         const ExecutorInfo& executorInfo,
         const std::string& directory,
@@ -57,10 +61,26 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
 {
     LOG(INFO) << "Preparing external storage for container: " << stringify(containerId);
 
-    const http::URL url = http::URL("http", "google.com");
-    process::Future<http::Response> response = process::http::get(url);
+    Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
+    if (resultJson.isError()) {
+        std::cerr << "Could not get node id for container: " << containerId << endl;
+        return Failure("Could not create node if for container: " + containerId.value());
+    }
 
-    std::cout << response.get().body;
+    // TODO: Parse uuid from nodeIdJson
+    UUID uuid = UUID::fromString("546c7fe2-0da6-4e7a-975b-1e752a88b092");
+
+    Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(uuid);
+    if (datasetJson.isError()) {
+        std::cerr << "Could not create dataset for container: " << containerId << endl;
+        return Failure("Could not create dataset for container: " + containerId.value());
+    }
+
+    // TODO: Parse dataset
+
+    // TODO: Create container prepare info
+
+    // TODO: Create mount
 
     return None();
 }
@@ -142,14 +162,6 @@ static Isolator* createFlockerIsolator(const mesos::Parameters& parameters)
     return result.get();
 }
 
-uint16_t FlockerIsolator::getFlockerControlPort() {
-    return flockerControlPort;
-}
-
-std::string FlockerIsolator::getFlockerControlIp() {
-    return flockerControlIp;
-}
-
 // Declares the isolator named com_clusterhq_flocker_ FlockerIsolator
 mesos::modules::Module<Isolator> com_clusterhq_flocker_FlockerIsolator(
         MESOS_MODULE_API_VERSION,
@@ -160,3 +172,6 @@ mesos::modules::Module<Isolator> com_clusterhq_flocker_FlockerIsolator(
         NULL,
         createFlockerIsolator);
 
+FlockerControlServiceClient *FlockerIsolator::getFlockerControlClient() {
+    return flockerControlServiceClient;
+}
