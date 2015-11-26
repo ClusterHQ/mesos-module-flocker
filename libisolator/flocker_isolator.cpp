@@ -59,13 +59,35 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     LOG(INFO) << "ExecutorInfo: " << stringify(executorInfo);
     LOG(INFO) << "Directory: " << directory;
 
+    // Get things we need from task's environment in ExecutorInfo.
+    if (!executorInfo.command().has_environment()) {
+        // No environment means no external volume specification.
+        // Not an error, just nothing to do, so return None.
+        LOG(INFO) << "No environment specified for container ";
+        return None();
+    }
+    std::string userDir;
+
+    // Iterate through the environment variables,
+    // looking for the ones we need.
+            foreach (const auto &variable,
+                     executorInfo.command().environment().variables()) {
+                    if (strings::startsWith(variable.name(), FLOCKER_CONTAINER_VOLUME_PATH)) {
+                        userDir = variable.value();
+                        LOG(INFO) << "Container volume name ("
+                        << userDir
+                        << ") parsed from environment";
+                    }
+                }
+
+    if (userDir.empty()) {
+        LOG(ERROR) << "Could not parse FLOCKER_CONTAINER_VOLUME_PATH from environmental variables.";
+        return None();
+    }
+
     // Determine the source of the mount.
     std::string flockerDir = path::join("/flocker",
                                         "test"); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
-
-    // Determine the target of the mount.
-    std::string userDir;
-    userDir = "/tmp/test";  // This should be the user specified path
 
     // If the user dir doesn't exist on the host, create.
     if (!os::exists(userDir)) {

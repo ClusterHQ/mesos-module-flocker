@@ -19,6 +19,8 @@
 
 #ifndef SRC_FLOCKER_ISOLATOR_HPP_
 #define SRC_FLOCKER_ISOLATOR_HPP_
+static const char *const FLOCKER_CONTAINER_VOLUME_PATH = "FLOCKER_CONTAINER_VOLUME_PATH";
+
 #include <iostream>
 #include <boost/functional/hash.hpp>
 #include <mesos/mesos.hpp>
