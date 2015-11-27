@@ -1,7 +1,7 @@
 FROM ubuntu-upstart:14.04
 MAINTAINER Mesosphere <support@mesosphere.io>
 
-ARG version=master
+ARG version=0.25.0
 # Install Dependencies
 
 RUN apt-get update -q --fix-missing
