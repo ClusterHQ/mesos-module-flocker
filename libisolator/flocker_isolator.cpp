@@ -1,8 +1,6 @@
 #include "flocker-isolator.hpp"
 #include <mesos/module.hpp>
 #include <mesos/module/isolator.hpp>
-#include <stout/os/posix/shell.hpp>
-#include <stout/try.hpp>
 
 using namespace mesos::slave;
 
@@ -70,7 +68,7 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
     if (resultJson.isError()) {
         std::cerr << "Could not get node id for container: " << containerId << endl;
-        return Failure("Could not create node if for container: " + containerId.value());
+        return process::Failure("Could not create node if for container: " + containerId.value());
     }
 
     // Iterate through the environment variables,
@@ -96,12 +94,12 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
 
     Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(uuid);
     if (datasetJson.isError()) {
-        std::cerr << "Could not create dataset for container: " << containerId << endl;
-        return Failure("Could not create dataset for container: " + containerId.value());
+        LOG(ERROR) << "Could not create dataset for container: " << containerId;
+        return process::Failure("Could not create dataset for container: " + containerId.value());
     }
 
     // TODO: Parse dataset
-    std::string datasetUUID = ""
+    std::string datasetUUID = "";
 
     // Determine the source of the mount.
     std::string flockerDir = path::join("/flocker",
@@ -113,7 +111,7 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         if (mkdir.isError()) {
             LOG(ERROR) << "Failed to create the target of the mount at '" +
                           userDir << "': " << mkdir.error();
-            return None();
+            return process::Failure("Failed to create the target of the mount");
         }
     }
 
