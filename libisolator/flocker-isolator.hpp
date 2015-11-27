@@ -33,6 +33,7 @@ static const char *const FLOCKER_CONTAINER_VOLUME_PATH = "FLOCKER_CONTAINER_VOLU
 #include <stout/multihashmap.hpp>
 #include <stout/protobuf.hpp>
 #include <stout/try.hpp>
+#include "flocker_control_service_client.hpp"
 
 namespace mesos {
 namespace slave {
@@ -104,9 +105,7 @@ public:
     virtual process::Future<Nothing> cleanup(
             const ContainerID &containerId);
 
-    uint16_t getFlockerControlPort();
-
-    std::string getFlockerControlIp();
+    FlockerControlServiceClient* getFlockerControlClient();
 
 private:
 
@@ -198,10 +197,7 @@ private:
 
   static std::string mountJsonFilename;
 
-  std::string flockerControlIp;
-
-  uint16_t flockerControlPort;
-
+  FlockerControlServiceClient *flockerControlServiceClient;
 };
 
 } /* namespace slave */

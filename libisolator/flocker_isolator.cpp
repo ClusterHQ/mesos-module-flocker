@@ -1,8 +1,11 @@
 #include "flocker-isolator.hpp"
 #include <mesos/module.hpp>
 #include <mesos/module/isolator.hpp>
+#include <stout/os/posix/shell.hpp>
+#include <stout/try.hpp>
 
 using namespace mesos::slave;
+
 using mesos::slave::ContainerPrepareInfo;
 using mesos::slave::ContainerLimitation;
 
@@ -15,15 +18,14 @@ const char  FlockerIsolator::prohibitedchars[NUM_PROHIBITED]  = {
         '}', '[', ']', '\n', '\t', '\v', '\b', '\r', '\\' };
 
  FlockerIsolator::FlockerIsolator(const std::string flockerControlIp, uint16_t flockerControlPort) {
-    this->flockerControlIp = flockerControlIp;
-    this->flockerControlPort = flockerControlPort;
+    this->flockerControlServiceClient = new FlockerControlServiceClient(flockerControlIp, flockerControlPort);
  }
 
  FlockerIsolator::~ FlockerIsolator() {}
 
 Try<mesos::slave::FlockerIsolator*>  FlockerIsolator::create(const Parameters& parameters)
 {
-    LOG(INFO) << "Create isolator process";
+    LOG(INFO) << "Creating FlockerIsolator";
 
     if (parameters.parameter_size() != 2) {
         std::cerr << "Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively" << std::endl;
@@ -65,6 +67,12 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     }
     std::string userDir;
 
+    Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
+    if (resultJson.isError()) {
+        std::cerr << "Could not get node id for container: " << containerId << endl;
+        return Failure("Could not create node if for container: " + containerId.value());
+    }
+
     // Iterate through the environment variables,
     // looking for the ones we need.
             foreach (const auto &variable,
@@ -83,9 +91,21 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         return None();
     }
 
+    // TODO: Parse uuid from nodeIdJson
+    UUID uuid = UUID::fromString("546c7fe2-0da6-4e7a-975b-1e752a88b092");
+
+    Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(uuid);
+    if (datasetJson.isError()) {
+        std::cerr << "Could not create dataset for container: " << containerId << endl;
+        return Failure("Could not create dataset for container: " + containerId.value());
+    }
+
+    // TODO: Parse dataset
+    std::string datasetUUID = ""
+
     // Determine the source of the mount.
     std::string flockerDir = path::join("/flocker",
-                                        "test"); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
+                                        datasetUUID); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
 
     // If the user dir doesn't exist on the host, create.
     if (!os::exists(userDir)) {
@@ -192,14 +212,6 @@ static Isolator* createFlockerIsolator(const mesos::Parameters& parameters)
     return result.get();
 }
 
-uint16_t FlockerIsolator::getFlockerControlPort() {
-    return flockerControlPort;
-}
-
-std::string FlockerIsolator::getFlockerControlIp() {
-    return flockerControlIp;
-}
-
 // Declares the isolator named com_clusterhq_flocker_ FlockerIsolator
 mesos::modules::Module<Isolator> com_clusterhq_flocker_FlockerIsolator(
         MESOS_MODULE_API_VERSION,
@@ -210,3 +222,6 @@ mesos::modules::Module<Isolator> com_clusterhq_flocker_FlockerIsolator(
         NULL,
         createFlockerIsolator);
 
+FlockerControlServiceClient *FlockerIsolator::getFlockerControlClient() {
+    return flockerControlServiceClient;
+}
