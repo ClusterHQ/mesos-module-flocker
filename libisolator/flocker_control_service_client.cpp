@@ -1,14 +1,6 @@
 #include "flocker_control_service_client.hpp"
 
-#include <stdarg.h> // For va_list, va_start, etc.
-#include <stdio.h> // For ferror, fgets, FILE, pclose, popen.
-
-#include <string>
-
-#include <stout/error.hpp>
 #include <stout/format.hpp>
-#include <stout/try.hpp>
-#include <glog/logging.h>
 
 #include <stout/os/posix/shell.hpp>
 
@@ -24,13 +16,29 @@ Try<string> FlockerControlServiceClient::getNodeId() {
 }
 
 Try<string> FlockerControlServiceClient::createDataSet(UUID uuid) {
-   return os::shell("curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key -d '{\"primary\": \"" + uuid.toString() + "\"}' https:" + flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets");
+    return os::shell(
+            "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key -d '{\"primary\": \"" +
+            uuid.toString() + "\"}' https://" + flockerControlIp + ":" + stringify(flockerControlPort) +
+            "/v1/configuration/datasets");
 }
 
 uint16_t FlockerControlServiceClient::getFlockerControlPort() {
     return flockerControlPort;
 }
 
-std::string FlockerControlServiceClient::getFlockerControlIp() {
+string FlockerControlServiceClient::getFlockerControlIp() {
     return flockerControlIp;
+}
+
+string FlockerControlServiceClient::getFlockerDataSetUUID(string string) {
+    LOG(INFO) << string;
+    unsigned long idLoc = string.find("\"dataset_id\":");
+    LOG(INFO) << idLoc;
+    unsigned long firstQuoteLoc = string.find("\"", idLoc + strlen("\"dataset_id\":"));
+    LOG(INFO) << firstQuoteLoc;
+    unsigned long lastQuoteLoc = string.find("\"", firstQuoteLoc + 1);
+    LOG(INFO) << lastQuoteLoc;
+    std::string retVal = string.substr(firstQuoteLoc + 1, lastQuoteLoc - firstQuoteLoc - 1);
+    LOG(INFO) << retVal;
+    return retVal;
 }
