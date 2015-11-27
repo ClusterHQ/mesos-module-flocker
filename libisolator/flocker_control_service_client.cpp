@@ -1,14 +1,6 @@
 #include "flocker_control_service_client.hpp"
 
-#include <stdarg.h> // For va_list, va_start, etc.
-#include <stdio.h> // For ferror, fgets, FILE, pclose, popen.
-
-#include <string>
-
-#include <stout/error.hpp>
 #include <stout/format.hpp>
-#include <stout/try.hpp>
-#include <glog/logging.h>
 
 #include <stout/os/posix/shell.hpp>
 
@@ -31,6 +23,10 @@ uint16_t FlockerControlServiceClient::getFlockerControlPort() {
     return flockerControlPort;
 }
 
-std::string FlockerControlServiceClient::getFlockerControlIp() {
+string FlockerControlServiceClient::getFlockerControlIp() {
     return flockerControlIp;
+}
+
+string FlockerControlServiceClient::getFlockerDataSetUUID(string string1) {
+    return "";
 }

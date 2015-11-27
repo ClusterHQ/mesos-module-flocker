@@ -24,7 +24,9 @@ public:
 
     uint16_t getFlockerControlPort();
 
-    std::string getFlockerControlIp();
+    string getFlockerControlIp();
+
+    string getFlockerDataSetUUID(string);
 
 private:
 
