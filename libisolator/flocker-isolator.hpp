@@ -21,7 +21,6 @@
 #define SRC_FLOCKER_ISOLATOR_HPP_
 #include <iostream>
 #include <boost/functional/hash.hpp>
-#include <boost/algorithm/string.hpp>
 #include <mesos/mesos.hpp>
 #include <mesos/slave/isolator.hpp>
 #include <slave/flags.hpp>
@@ -32,73 +31,83 @@
 #include <stout/multihashmap.hpp>
 #include <stout/protobuf.hpp>
 #include <stout/try.hpp>
+#include "flocker_control_service_client.hpp"
 
 namespace mesos {
 namespace slave {
 
-class FlockerIsolatorProcess: public mesos::slave::IsolatorProcess {
+class  FlockerIsolator: public mesos::slave::Isolator {
 public:
-  static Try<mesos::slave::Isolator*> create(const Parameters& parameters);
+  static Try<mesos::slave::FlockerIsolator*> create(const Parameters& parameters);
 
-  virtual ~FlockerIsolatorProcess();
+  virtual ~ FlockerIsolator();
 
-  // Slave recovery is a feature of Mesos that allows task/executors
-  // to keep running if a slave process goes down, AND
-  // allows the slave process to reconnect with already running
-  // slaves when it restarts
-  // TODO This interface will change post 0.23.0 to pass a list of
-  // of container states which will assist in recovery,
-  // when this is available, code should use it.
-  virtual process::Future<Nothing> recover(
-      const std::list<mesos::slave::ExecutorRunState>& states,
-      const hashset<ContainerID>& orphans);
+    // Recover containers from the run states and the orphan containers
+    // (known to the launcher but not known to the slave) detected by
+    // the launcher.
+    virtual process::Future<Nothing> recover(
+            const std::list<ContainerState>& states,
+            const hashset<ContainerID> &orphans);
 
-  // Prepare runs BEFORE a task is started
-  // will check if the volume is already mounted and if not,
-  // will mount the volume
-  //
-  // 1. Get Flocker Control Service IP and PORT from environment
-  //    variables.
-  // 2. POST request to Flocker Control Service.
-  // 3. Poll Flocker Control Service waiting for volume to manifest.
-  //    Note: please update "executor_registration_timeout" flag
-  //    in case supported backends are expected to take more than
-  //    default 1 minute timeout while manifesting datasets (EBS,
-  //    for example, takes up to 360 seconds for attaching a volume).
-  //    Ref: http://mesos.apache.org/documentation/latest/configuration/
-  // 4. GET volume's mounted path (/flocker/uuid).
-  // 5. Add entry to hashmap that contains root mountpath indexed by ContainerId
-  virtual process::Future<Option<CommandInfo>> prepare(
-      const ContainerID& containerId,
-      const ExecutorInfo& executorInfo,
-      const std::string& directory,
-      const Option<std::string>& rootfs,
-      const Option<std::string>& user);
+    // Prepare for isolation of the executor. Any steps that require
+    // execution in the containerized context (e.g. inside a network
+    // namespace) can be returned in the optional CommandInfo and they
+    // will be run by the Launcher.
+    // Prepare runs BEFORE a task is started
+    // will check if the volume is already mounted and if not,
+    // will mount the volume
+    //
+    // 1. Get Flocker Control Service IP and PORT from environment
+    //    variables.
+    // 2. POST request to Flocker Control Service.
+    // 3. Poll Flocker Control Service waiting for volume to manifest.
+    //    Note: please update "executor_registration_timeout" flag
+    //    in case supported backends are expected to take more than
+    //    default 1 minute timeout while manifesting datasets (EBS,
+    //    for example, takes up to 360 seconds for attaching a volume).
+    //    Ref: http://mesos.apache.org/documentation/latest/configuration/
+    // 4. GET volume's mounted path (/flocker/uuid).
+    // 5. Add entry to hashmap that contains root mountpath indexed by ContainerId
+    virtual process::Future<Option<ContainerPrepareInfo>> prepare(
+            const ContainerID& containerId,
+            const ExecutorInfo& executorInfo,
+            const std::string& directory,
+            const Option<std::string> &user);
 
-  // Nothing will be done at task start
-  virtual process::Future<Nothing> isolate(
-      const ContainerID& containerId,
-      pid_t pid);
+    // Isolate the executor.
+    // Nothing will be done at task start
+    virtual process::Future<Nothing> isolate(
+            const ContainerID& containerId,
+            pid_t pid);
 
-  // no-op, mount occurs at prepare
-  virtual process::Future<mesos::slave::Limitation> watch(
-      const ContainerID& containerId);
+    // Watch the containerized executor and report if any resource
+    // constraint impacts the container, e.g., the kernel killing some
+    // processes.
+    // no-op, mount occurs at prepare
+    virtual process::Future<ContainerLimitation> watch(
+            const ContainerID &containerId);
 
-  // no-op, nothing enforced
-  virtual process::Future<Nothing> update(
-      const ContainerID& containerId,
-      const Resources& resources);
+    // Update the resources allocated to the container.
+    // no-op, no usage stats gathered
+    virtual process::Future<Nothing> update(
+            const ContainerID& containerId,
+            const Resources &resources);
 
-  // no-op, no usage stats gathered
-  virtual process::Future<ResourceStatistics> usage(
-      const ContainerID& containerId);
+    // Gather resource usage statistics for the container.
+    virtual process::Future<ResourceStatistics> usage(
+            const ContainerID &containerId);
 
-  // no-op, lazy unmount when necessary
-  virtual process::Future<Nothing> cleanup(
-      const ContainerID& containerId);
+    // Clean up a terminated container. This is called after the
+    // executor and all processes in the container have terminated.
+    // no-op, lazy unmount when necessary
+    virtual process::Future<Nothing> cleanup(
+            const ContainerID &containerId);
+
+    FlockerControlServiceClient* getFlockerControlClient();
 
 private:
-  FlockerIsolatorProcess(const Parameters& parameters);
+
+  FlockerIsolator(const std::string flockerControlIp, uint16_t flockerControlPort);
 
   const Parameters parameters;
 
@@ -126,7 +135,7 @@ private:
 
     ExternalMountID getExternalMountId(void) const {
         size_t seed = 0;
-        std::string s1(boost::to_lower_copy(volumeId));
+        std::string s1(volumeId);
         boost::hash_combine(seed, s1);
         return seed;
     }
@@ -180,14 +189,13 @@ private:
 
   static constexpr const char* FLOCKER_MOUNT_PREFIX       = "/flocker/";
 
-  static constexpr const char* FLOCKER_CONTROL_IP        = "FLOCKER_CONTROL_IP";
-  static constexpr const char* FLOCKER_CONTROL_PORT      = "FLOCKER_CONTROL_PORT";
-
   static constexpr const char* FLOCKER_MOUNTLIST_DEFAULT_DIR = "/var/lib/mesos/flocker/";
   static constexpr const char* FLOCKER_MOUNTLIST_FILENAME   = "flockermounts.json";
   static constexpr const char* FLOCKER_WORKDIR_PARAM_NAME   = "work_dir";
 
   static std::string mountJsonFilename;
+
+  FlockerControlServiceClient *flockerControlServiceClient;
 };
 
 } /* namespace slave */

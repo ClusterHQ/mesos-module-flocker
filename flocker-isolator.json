@@ -1,0 +1,12 @@
+{
+  "libraries": [
+    {
+      "file": "/usr/local/lib/libisolator.so",
+      "modules": [
+        {
+          "name": "flocker_isolator"
+        }
+      ]
+    }
+  ]
+}
