@@ -4,6 +4,8 @@
 #include <string>
 #include <stout/try.hpp>
 #include <stout/uuid.hpp>
+#include <glog/logging.h>
+
 
 using namespace std;
 
