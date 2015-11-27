@@ -38,7 +38,11 @@ message(STATUS "Using mesos root folder: \"${Mesos_ROOT_DIR}\"")
 SET (Mesos_BUILD_DIR $ENV{MESOS_ROOT}/build)
 message(STATUS "Using mesos build folder: \"${Mesos_BUILD_DIR}\"")
 
-SET (Mesos_LIBRARY $ENV{MESOS_ROOT}/build/src/.libs/libmesos.so)
+IF (APPLE)
+    SET(Mesos_LIBRARY $ENV{MESOS_ROOT}/build/src/.libs/libmesos.dylib)
+ELSEIF (UNIX)
+    SET(Mesos_LIBRARY $ENV{MESOS_ROOT}/build/src/.libs/libmesos.so)
+ENDIF ()
 message(STATUS "Using mesos lib: \"${Mesos_LIBRARY}\"")
 
 # Find Mesos src folder.
