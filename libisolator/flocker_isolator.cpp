@@ -76,7 +76,9 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         return Failure("Could not create dataset for container: " + containerId.value());
     }
 
-    // TODO: Parse dataset
+    std::string datasetUUID = flockerControlServiceClient->getFlockerDataSetUUID(datasetJson.get());
+
+    LOG(INFO) << datasetUUID;
 
     // TODO: Create container prepare info
 

@@ -27,6 +27,15 @@ string FlockerControlServiceClient::getFlockerControlIp() {
     return flockerControlIp;
 }
 
-string FlockerControlServiceClient::getFlockerDataSetUUID(string string1) {
-    return "";
+string FlockerControlServiceClient::getFlockerDataSetUUID(string string) {
+    LOG(INFO) << string;
+    unsigned long idLoc = string.find("\"dataset_id\":");
+    LOG(INFO) << idLoc;
+    unsigned long firstQuoteLoc = string.find("\"", idLoc + strlen("\"dataset_id\":"));
+    LOG(INFO) << firstQuoteLoc;
+    unsigned long lastQuoteLoc = string.find("\"", firstQuoteLoc + 1);
+    LOG(INFO) << lastQuoteLoc;
+    std::string retVal = string.substr(firstQuoteLoc + 1, lastQuoteLoc);
+    LOG(INFO) << retVal;
+    return retVal;
 }
