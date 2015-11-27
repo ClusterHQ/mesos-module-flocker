@@ -59,11 +59,8 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     LOG(INFO) << "ExecutorInfo: " << stringify(executorInfo);
     LOG(INFO) << "Directory: " << directory;
 
-    // Get things we need from task's environment in ExecutorInfo.
     if (!executorInfo.command().has_environment()) {
-        // No environment means no external volume specification.
-        // Not an error, just nothing to do, so return None.
-        LOG(INFO) << "No environment specified for container ";
+        LOG(INFO) << "No environment specified for container. Not a Mesos-Flocker application. ";
         return None();
     }
     std::string userDir;
@@ -81,7 +78,8 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
                 }
 
     if (userDir.empty()) {
-        LOG(ERROR) << "Could not parse FLOCKER_CONTAINER_VOLUME_PATH from environmental variables.";
+        LOG(ERROR) << "Could not parse" << FLOCKER_CONTAINER_VOLUME_PATH <<
+        "from environmental variables. Not a Mesos-Flocker application";
         return None();
     }
 
