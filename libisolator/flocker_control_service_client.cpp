@@ -1,7 +1,7 @@
 #include "flocker_control_service_client.hpp"
 
 #include <stout/format.hpp>
-
+#include <stout/json.hpp>
 #include <stout/os/posix/shell.hpp>
 
 using namespace std;
@@ -27,15 +27,12 @@ string FlockerControlServiceClient::getFlockerControlIp() {
     return flockerControlIp;
 }
 
-string FlockerControlServiceClient::getFlockerDataSetUUID(string string) {
-    LOG(INFO) << string;
-    unsigned long idLoc = string.find("\"dataset_id\":");
-    LOG(INFO) << idLoc;
-    unsigned long firstQuoteLoc = string.find("\"", idLoc + strlen("\"dataset_id\":"));
-    LOG(INFO) << firstQuoteLoc;
-    unsigned long lastQuoteLoc = string.find("\"", firstQuoteLoc + 1);
-    LOG(INFO) << lastQuoteLoc;
-    std::string retVal = string.substr(firstQuoteLoc + 1, lastQuoteLoc);
-    LOG(INFO) << retVal;
-    return retVal;
+string FlockerControlServiceClient::getFlockerDataSetUUID(string jsonString) {
+    Try<JSON::Object> parse = JSON::parse<JSON::Object>(jsonString);
+    if (parse.isError()) {
+        std::cerr << "Could not parse JSON" << endl;
+        return "";
+    }
+    JSON::Object dataSetJson = parse.get();
+    return dataSetJson.values["dataset_id"].as<string>();
 }
