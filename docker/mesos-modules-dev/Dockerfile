@@ -63,7 +63,7 @@ RUN ./bootstrap
 RUN mkdir build && cd build && ../configure --disable-java --disable-optimize --without-included-zookeeper --with-glog=/usr/local --with-protobuf=/usr --with-boost=/usr/local
 
 # Build Mesos
-RUN cd build && make -j 2 install
+RUN cd build && make -j 4 install
 
 # Install python eggs
 RUN easy_install /mesos/build/src/python/dist/mesos.interface-*.egg
