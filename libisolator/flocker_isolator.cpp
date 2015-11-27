@@ -1,8 +1,12 @@
 #include "flocker-isolator.hpp"
+#include "flocker_control_service_client.hpp"
 #include <mesos/module.hpp>
 #include <mesos/module/isolator.hpp>
+#include <stout/os/posix/shell.hpp>
+#include <stout/try.hpp>
 
 using namespace mesos::slave;
+using namespace process;
 
 using mesos::slave::ContainerPrepareInfo;
 using mesos::slave::ContainerLimitation;
@@ -41,7 +45,7 @@ Try<mesos::slave::FlockerIsolator*>  FlockerIsolator::create(const Parameters& p
     return new FlockerIsolator(parameters.parameter(0).value(), flockerControlPort.get());
 }
 
-process::Future<Nothing>  FlockerIsolator::recover(
+Future<Nothing>  FlockerIsolator::recover(
         const std::list<ContainerState>& states,
         const hashset<ContainerID>& orphans)
 {
@@ -49,7 +53,7 @@ process::Future<Nothing>  FlockerIsolator::recover(
     return Nothing();
 }
 
-process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
+Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         const ContainerID& containerId,
         const ExecutorInfo& executorInfo,
         const std::string& directory,
@@ -65,23 +69,15 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     }
     std::string userDir;
 
-    Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
-    if (resultJson.isError()) {
-        std::cerr << "Could not get node id for container: " << containerId << endl;
-        return process::Failure("Could not create node if for container: " + containerId.value());
-    }
-
-    // Iterate through the environment variables,
-    // looking for the ones we need.
-            foreach (const auto &variable,
-                     executorInfo.command().environment().variables()) {
-                    if (strings::startsWith(variable.name(), FLOCKER_CONTAINER_VOLUME_PATH)) {
-                        userDir = variable.value();
-                        LOG(INFO) << "Container volume name ("
-                        << userDir
-                        << ") parsed from environment";
-                    }
-                }
+    foreach (const auto &variable,
+             executorInfo.command().environment().variables()) {
+            if (strings::startsWith(variable.name(), FLOCKER_CONTAINER_VOLUME_PATH)) {
+                userDir = variable.value();
+                LOG(INFO) << "Container volume name ("
+                << userDir
+                << ") parsed from environment";
+            }
+        }
 
     if (userDir.empty()) {
         LOG(ERROR) << "Could not parse" << FLOCKER_CONTAINER_VOLUME_PATH <<
@@ -89,17 +85,24 @@ process::Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         return None();
     }
 
+    Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
+    if (resultJson.isError()) {
+        std::cerr << "Could not get node id for container: " << containerId << endl;
+        return Failure("Could not create node if for container: " + containerId.value());
+    }
+
     // TODO: Parse uuid from nodeIdJson
     UUID uuid = UUID::fromString("546c7fe2-0da6-4e7a-975b-1e752a88b092");
 
     Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(uuid);
     if (datasetJson.isError()) {
-        LOG(ERROR) << "Could not create dataset for container: " << containerId;
-        return process::Failure("Could not create dataset for container: " + containerId.value());
+        std::cerr << "Could not create dataset for container: " << containerId << endl;
+        return Failure("Could not create dataset for container: " + containerId.value());
     }
 
-    // TODO: Parse dataset
-    std::string datasetUUID = "";
+    std::string datasetUUID = flockerControlServiceClient->getFlockerDataSetUUID(datasetJson.get());
+
+    LOG(INFO) << datasetUUID;
 
     // Determine the source of the mount.
     std::string flockerDir = path::join("/flocker",
