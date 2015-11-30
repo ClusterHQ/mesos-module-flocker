@@ -28,8 +28,6 @@ public:
 
     string getFlockerControlIp();
 
-    string getFlockerDataSetUUID(string);
-
 private:
 
     std::string flockerControlIp;

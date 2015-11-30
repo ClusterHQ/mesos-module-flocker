@@ -30,13 +30,3 @@ uint16_t FlockerControlServiceClient::getFlockerControlPort() {
 string FlockerControlServiceClient::getFlockerControlIp() {
     return flockerControlIp;
 }
-
-string FlockerControlServiceClient::getFlockerDataSetUUID(string jsonString) {
-    Try<JSON::Object> parse = JSON::parse<JSON::Object>(jsonString);
-    if (parse.isError()) {
-        std::cerr << "Could not parse JSON" << endl;
-        return "";
-    }
-    JSON::Object dataSetJson = parse.get();
-    return dataSetJson.values["dataset_id"].as<string>();
-}
