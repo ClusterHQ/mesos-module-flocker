@@ -1,4 +1,6 @@
+#include <stout/try.hpp>
 #include "../../libisolator/flocker-isolator.hpp"
+#include "mock_flocker_control_service_client.hpp"
 #include <stout/os.hpp>
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
@@ -19,6 +21,7 @@ void FlockerIsolatorTest::SetUp() {};
 void FlockerIsolatorTest::TearDown() {};
 
 TEST_F(FlockerIsolatorTest, IsolatorCreateSetsFlockerIpAndPort) {
+
     Parameters parameters;
 
     string flockerControlIp = "192.1.2.3";
@@ -74,24 +77,22 @@ TEST_F(FlockerIsolatorTest, IsolatorCreateWithoutPortReturnsError) {
     EXPECT_TRUE(result.isError());
 }
 
-TEST_F(FlockerIsolatorTest, DISABLED_IsolatorPrepareCallsFlockerControlService) {
+TEST_F(FlockerIsolatorTest, IsolatorPrepareCallsFlockerControlService) {
 
-    Parameters parameters;
+    const string ip = "192.1.2.3";
+    uint16_t port = 1234;
 
-    const char *flockerControlIp = "192.1.2.3";
-    Parameter* parameter = parameters.add_parameter();
-    parameter->set_key("flocker_control_ip");
-    parameter->set_value(flockerControlIp);
+    MockFlockerControlServiceClient flockerControlClient(ip, port);
 
-    const char *flockerControlPort = "4523";
-    parameter = parameters.add_parameter();
-    parameter->set_key("flocker_control_port");
-    parameter->set_value(flockerControlPort);
+    EXPECT_CALL(flockerControlClient, getNodeId()).WillOnce(Return(Try<string>::some("fef7fa02-c8c2-4c52-96b5-de70a8ef1925")));
 
-    Try<FlockerIsolator*> result = FlockerIsolator::create(parameters);
-    if (result.isError()) {
-        cerr << "Could not create Flocker isolator" << endl;
-    }
+    UUID uuid = UUID::fromString("fef7fa02-c8c2-4c52-96b5-de70a8ef1925");
+
+    EXPECT_CALL(flockerControlClient, createDataSet(uuid)).WillOnce(Return(Try<string>::some(
+        "{\"deleted\": false, \"dataset_id\": \"e66d949c-ae91-4446-9115-824722a1e4b0\", \"primary\": \"fef7fa02-c8c2-4c52-96b5-de70a8ef1925\", \"metadata\": {}}"
+    )));
+
+    FlockerIsolator *isolator = new FlockerIsolator(&flockerControlClient);
 
     ContainerID containerId;
     containerId.set_value("befa2b13da05");
@@ -104,7 +105,7 @@ TEST_F(FlockerIsolatorTest, DISABLED_IsolatorPrepareCallsFlockerControlService) 
 
     Result<string> user = os::user();
 
-    result.get()->prepare(containerId, executor, "/tmp", user.get());
+    isolator->prepare(containerId, executor, "/tmp", user.get());
 
     EXPECT_EQ(1, 1);
 }

@@ -20,9 +20,9 @@ public:
 
     FlockerControlServiceClient(const string flockerControlIp, uint16_t flockerControlPort);
 
-    Try<string> getNodeId();
+    virtual Try<string> getNodeId();
 
-    Try<string> createDataSet(UUID uuid);
+    virtual Try<string> createDataSet(UUID uuid);
 
     uint16_t getFlockerControlPort();
 
