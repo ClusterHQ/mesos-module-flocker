@@ -62,10 +62,9 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     LOG(INFO) << "ExecutorInfo: " << stringify(executorInfo);
     LOG(INFO) << "Directory: " << directory;
 
-    Option<FlockerEnvironmentalVariables> envVars = FlockerEnvironmentalVariables::parse(executorInfo);
-
     // *****************
     // Read user directory from environmental variables.
+    Option<FlockerEnvironmentalVariables> envVars = FlockerEnvironmentalVariables::parse(executorInfo);
     if (envVars.isNone()) {
         LOG(INFO) << "No environment specified for container. Not a Mesos-Flocker application. ";
         return None();
