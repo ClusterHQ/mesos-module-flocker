@@ -1,4 +1,5 @@
 #include "flocker-isolator.hpp"
+#include "FlockerEnvironmentalVariables.h"
 #include <mesos/module.hpp>
 #include <mesos/module/isolator.hpp>
 #include <stout/os/posix/exists.hpp>
@@ -64,35 +65,16 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     LOG(INFO) << "ExecutorInfo: " << stringify(executorInfo);
     LOG(INFO) << "Directory: " << directory;
 
-
     // *****************
     // Read user directory from environmental variables.
-
-    if (!executorInfo.command().has_environment()) {
+    Option<FlockerEnvironmentalVariables> envVars = FlockerEnvironmentalVariables::parse(executorInfo);
+    if (envVars.isNone()) {
         LOG(INFO) << "No environment specified for container. Not a Mesos-Flocker application. ";
         return None();
     }
-    std::string userDir;
 
-    foreach (const auto &variable,
-             executorInfo.command().environment().variables()) {
-            if (strings::startsWith(variable.name(), FLOCKER_CONTAINER_VOLUME_PATH)) {
-                userDir = variable.value();
-                LOG(INFO) << "Container volume name ("
-                << userDir
-                << ") parsed from environment";
-            }
-        }
-
-    if (userDir.empty()) {
-        LOG(ERROR) << "Could not parse" << FLOCKER_CONTAINER_VOLUME_PATH <<
-        "from environmental variables. Not a Mesos-Flocker application";
-        return None();
-    }
-
-
-        // *****************
-        // Send REST command to Flocker to get the current Flocker node ID
+    // *****************
+    // Send REST command to Flocker to get the current Flocker node ID
     Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
     if (resultJson.isError()) {
         std::cerr << "Could not get node id for container: " << containerId << endl;
@@ -100,12 +82,10 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     }
 
     // TODO: Parse uuid from nodeIdJson
-        UUID uuid = UUID::fromString("fef7fa02-c8c2-4c52-96b5-de70a8ef1925");
+    UUID uuid = UUID::fromString("fef7fa02-c8c2-4c52-96b5-de70a8ef1925");
 
-
-
-        // *****************
-        // Send REST command to Flocker to create a new dataset
+    // *****************
+    // Send REST command to Flocker to create a new dataset
     Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(uuid);
     if (datasetJson.isError()) {
         std::cerr << "Could not create dataset for container: " << containerId << endl;
@@ -134,19 +114,21 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         }
 
     // If the user dir doesn't exist on the host, create.
-    if (!os::exists(userDir)) {
-        Try<Nothing> mkdir = os::mkdir(userDir);
+    if (!os::exists(envVars->getUserDir().get())) {
+        Try<Nothing> mkdir = os::mkdir(envVars->getUserDir().get());
         if (mkdir.isError()) {
             LOG(ERROR) << "Failed to create the target of the mount at '" +
-                          userDir << "': " << mkdir.error();
+                                  envVars->getUserDir().get() << "': " << mkdir.error();
             return process::Failure("Failed to create the target of the mount");
         }
     }
 
         // *****************
         // Bind user directory to Flocker volume≠
-        // Do we need -n here? Do we want it to appear in /etc/mtab?
-    Try<std::string> retcode = os::shell("%s %s %s", "mount --rbind", flockerDir.c_str(), userDir.c_str());
+    Try<std::string> retcode = os::shell("%s %s %s",
+                                         "mount --rbind", // Do we need -n here? Do we want it to appear in /etc/mtab?
+                                         flockerDir.c_str(),
+                                         envVars->getUserDir().get().c_str());
 
     if (retcode.isError()) {
         LOG(ERROR) << "mount --rbind" << " failed to execute on "
@@ -154,7 +136,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         << retcode.error();
     } else {
         LOG(INFO) << "mount --rbind" << " mounted on:"
-        << userDir;
+        << envVars->getUserDir().get();
 
     }
     return None();
