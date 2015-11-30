@@ -24,7 +24,6 @@ static const char *const FLOCKER_CONTAINER_VOLUME_PATH = "FLOCKER_CONTAINER_VOLU
 #include <iostream>
 #include <boost/functional/hash.hpp>
 #include <mesos/mesos.hpp>
-#include <mesos/slave/isolator.hpp>
 #include <slave/flags.hpp>
 #include <process/future.hpp>
 #include <process/owned.hpp>
@@ -33,6 +32,7 @@ static const char *const FLOCKER_CONTAINER_VOLUME_PATH = "FLOCKER_CONTAINER_VOLU
 #include <stout/multihashmap.hpp>
 #include <stout/protobuf.hpp>
 #include <stout/try.hpp>
+#include <mesos/slave/isolator.hpp>
 #include "flocker_control_service_client.hpp"
 
 namespace mesos {
