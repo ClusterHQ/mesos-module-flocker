@@ -19,8 +19,8 @@ const char  FlockerIsolator::prohibitedchars[NUM_PROHIBITED]  = {
         '?', '^', '&', ' ', '{', '\"',
         '}', '[', ']', '\n', '\t', '\v', '\b', '\r', '\\' };
 
- FlockerIsolator::FlockerIsolator(const std::string flockerControlIp, uint16_t flockerControlPort) {
-    this->flockerControlServiceClient = new FlockerControlServiceClient(flockerControlIp, flockerControlPort);
+ FlockerIsolator::FlockerIsolator(FlockerControlServiceClient *flockerControlServiceClient) {
+    this->flockerControlServiceClient = flockerControlServiceClient;
  }
 
  FlockerIsolator::~ FlockerIsolator() {}
@@ -42,7 +42,8 @@ Try<mesos::slave::FlockerIsolator*>  FlockerIsolator::create(const Parameters& p
         return Error("Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively");
     }
 
-    return new FlockerIsolator(parameters.parameter(0).value(), flockerControlPort.get());
+    FlockerControlServiceClient *client = new FlockerControlServiceClient(parameters.parameter(0).value(), flockerControlPort.get());
+    return new FlockerIsolator(client);
 }
 
 Future<Nothing>  FlockerIsolator::recover(

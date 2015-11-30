@@ -105,9 +105,9 @@ public:
 
     FlockerControlServiceClient* getFlockerControlClient();
 
-private:
+    FlockerIsolator(FlockerControlServiceClient *client);
 
-  FlockerIsolator(const std::string flockerControlIp, uint16_t flockerControlPort);
+private:
 
   const Parameters parameters;
 
