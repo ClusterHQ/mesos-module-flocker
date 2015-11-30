@@ -99,7 +99,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     std::string flockerDir = path::join("/flocker",
                                         datasetUUID); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
 
-        LOG(INFO) << "Wating for" << datasetUUID << "to mount";
+        LOG(INFO) << "Waiting for" << datasetUUID << "to mount";
 
         // *****************
         // Wait for the flocker dataset to mount
