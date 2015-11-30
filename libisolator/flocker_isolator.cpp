@@ -1,9 +1,6 @@
 #include "flocker-isolator.hpp"
-#include "flocker_control_service_client.hpp"
 #include <mesos/module.hpp>
 #include <mesos/module/isolator.hpp>
-#include <stout/os/posix/shell.hpp>
-#include <stout/try.hpp>
 
 using namespace mesos::slave;
 using namespace process;
@@ -19,8 +16,8 @@ const char  FlockerIsolator::prohibitedchars[NUM_PROHIBITED]  = {
         '?', '^', '&', ' ', '{', '\"',
         '}', '[', ']', '\n', '\t', '\v', '\b', '\r', '\\' };
 
- FlockerIsolator::FlockerIsolator(const std::string flockerControlIp, uint16_t flockerControlPort) {
-    this->flockerControlServiceClient = new FlockerControlServiceClient(flockerControlIp, flockerControlPort);
+ FlockerIsolator::FlockerIsolator(FlockerControlServiceClient *flockerControlServiceClient) {
+    this->flockerControlServiceClient = flockerControlServiceClient;
  }
 
  FlockerIsolator::~ FlockerIsolator() {}
@@ -42,7 +39,8 @@ Try<mesos::slave::FlockerIsolator*>  FlockerIsolator::create(const Parameters& p
         return Error("Could not initialize FlockerIsolator. Specify Flocker Control Service IP and port as parameters 1 and 2 respectively");
     }
 
-    return new FlockerIsolator(parameters.parameter(0).value(), flockerControlPort.get());
+    FlockerControlServiceClient *client = new FlockerControlServiceClient(parameters.parameter(0).value(), flockerControlPort.get());
+    return new FlockerIsolator(client);
 }
 
 Future<Nothing>  FlockerIsolator::recover(
@@ -60,7 +58,38 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         const Option<std::string>& user)
 {
     LOG(INFO) << "Preparing external storage for container: " << stringify(containerId);
+    LOG(INFO) << "ExecutorInfo: " << stringify(executorInfo);
+    LOG(INFO) << "Directory: " << directory;
 
+
+    // *****************
+    // Read user directory from environmental variables.
+    {
+    if (!executorInfo.command().has_environment()) {
+        LOG(INFO) << "No environment specified for container. Not a Mesos-Flocker application. ";
+        return None();
+    }
+    std::string userDir;
+
+    foreach (const auto &variable,
+             executorInfo.command().environment().variables()) {
+            if (strings::startsWith(variable.name(), FLOCKER_CONTAINER_VOLUME_PATH)) {
+                userDir = variable.value();
+                LOG(INFO) << "Container volume name ("
+                << userDir
+                << ") parsed from environment";
+            }
+        }
+
+    if (userDir.empty()) {
+        LOG(ERROR) << "Could not parse" << FLOCKER_CONTAINER_VOLUME_PATH <<
+        "from environmental variables. Not a Mesos-Flocker application";
+        return None();
+    }
+
+
+        // *****************
+        // Send REST command to Flocker to get the current Flocker node ID
     Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
     if (resultJson.isError()) {
         std::cerr << "Could not get node id for container: " << containerId << endl;
@@ -68,8 +97,12 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     }
 
     // TODO: Parse uuid from nodeIdJson
-    UUID uuid = UUID::fromString("546c7fe2-0da6-4e7a-975b-1e752a88b092");
+        UUID uuid = UUID::fromString("fef7fa02-c8c2-4c52-96b5-de70a8ef1925");
 
+
+
+        // *****************
+        // Send REST command to Flocker to create a new dataset
     Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(uuid);
     if (datasetJson.isError()) {
         std::cerr << "Could not create dataset for container: " << containerId << endl;
@@ -80,10 +113,49 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
 
     LOG(INFO) << datasetUUID;
 
-    // TODO: Create container prepare info
+    // Determine the source of the mount.
+    std::string flockerDir = path::join("/flocker",
+                                        datasetUUID); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
 
-    // TODO: Create mount
+        LOG(INFO) << "Wating for" << datasetUUID << "to mount";
 
+        // *****************
+        // Wait for the flocker dataset to mount
+        unsigned long watchdog = 0;
+        while ((!os::exists(flockerDir))) {
+            usleep(1000000); // Sleep for 1 s.
+            if (watchdog++ > 60) {
+                LOG(ERROR) << "Flocker did not mount within 60 s" << containerId << endl;
+                return Failure("Flocker did not mount within 60 s: " + containerId.value());
+            }
+        }
+
+    // If the user dir doesn't exist on the host, create.
+    if (!os::exists(userDir)) {
+        Try<Nothing> mkdir = os::mkdir(userDir);
+        if (mkdir.isError()) {
+            LOG(ERROR) << "Failed to create the target of the mount at '" +
+                          userDir << "': " << mkdir.error();
+            return process::Failure("Failed to create the target of the mount");
+        }
+    }
+
+        // *****************
+        // Bind user directory to Flocker volume≠
+    Try<std::string> retcode = os::shell("%s %s %s",
+                                         "mount --rbind", // Do we need -n here? Do we want it to appear in /etc/mtab?
+                                         flockerDir.c_str(),
+                                         userDir.c_str());
+
+    if (retcode.isError()) {
+        LOG(ERROR) << "mount --rbind" << " failed to execute on "
+        << flockerDir
+        << retcode.error();
+    } else {
+        LOG(INFO) << "mount --rbind" << " mounted on:"
+        << userDir;
+
+    }
     return None();
 }
 
