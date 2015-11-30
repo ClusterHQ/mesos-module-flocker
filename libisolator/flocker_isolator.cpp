@@ -4,6 +4,7 @@
 #include <mesos/module/isolator.hpp>
 #include <stout/os/posix/exists.hpp>
 #include <stout/os/posix/shell.hpp>
+#include <stout/os/mkdir.hpp>
 
 using namespace mesos::slave;
 using namespace process;
@@ -72,6 +73,8 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         return None();
     }
 
+    LOG(INFO) << "Parsed env vars" << endl;
+
     // *****************
     // Send REST command to Flocker to get the current Flocker node ID
     Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
@@ -80,8 +83,9 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         return Failure("Could not create node if for container: " + containerId.value());
     }
 
-    // TODO: Parse uuid from nodeIdJson
-    UUID uuid = UUID::fromString("fef7fa02-c8c2-4c52-96b5-de70a8ef1925");
+    UUID uuid = UUID::fromString(resultJson.get());
+
+    LOG(INFO) << "Got node UUID: " << uuid << endl;
 
     // *****************
     // Send REST command to Flocker to create a new dataset
@@ -91,26 +95,36 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         return Failure("Could not create dataset for container: " + containerId.value());
     }
 
-    std::string datasetUUID = flockerControlServiceClient->getFlockerDataSetUUID(datasetJson.get());
+    LOG(INFO) << "Created dataset: " << datasetJson.get() << endl;
 
-    LOG(INFO) << datasetUUID;
+    Try<JSON::Object> parse = JSON::parse<JSON::Object>(datasetJson.get());
+    if (parse.isError()) {
+        std::cerr << "Could not parse JSON" << endl;
+        return Failure("Could not create node if for container: " + containerId.value());
+    }
+    LOG(INFO) << parse.get() << endl;
+
+    JSON::Object dataSetJson = parse.get();
+
+    std::string datasetUUID = dataSetJson.values["dataset_id"].as<string>();
+
+    LOG(INFO) << "Got dataset UUID: " << datasetUUID << endl;
 
     // Determine the source of the mount.
-    std::string flockerDir = path::join("/flocker",
-                                        datasetUUID); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
+    std::string flockerDir = path::join("/flocker", datasetUUID); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
 
-        LOG(INFO) << "Waiting for" << datasetUUID << "to mount";
+    LOG(INFO) << "Waiting for" << datasetUUID << "to mount";
 
-        // *****************
-        // Wait for the flocker dataset to mount
-        unsigned long watchdog = 0;
-        while ((!os::exists(flockerDir))) {
-            usleep(1000000); // Sleep for 1 s.
-            if (watchdog++ > 60) {
-                LOG(ERROR) << "Flocker did not mount within 60 s" << containerId << endl;
-                return Failure("Flocker did not mount within 60 s: " + containerId.value());
-            }
+    // *****************
+    // Wait for the flocker dataset to mount
+    unsigned long watchdog = 0;
+    while ((!os::exists(flockerDir))) {
+        usleep(1000000); // Sleep for 1 s.
+        if (watchdog++ > 60) {
+            LOG(ERROR) << "Flocker did not mount within 60 s" << containerId << endl;
+            return Failure("Flocker did not mount within 60 s: " + containerId.value());
         }
+    }
 
     // If the user dir doesn't exist on the host, create.
     if (!os::exists(envVars->getUserDir().get())) {
@@ -124,8 +138,8 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         LOG(WARNING) << "The user directory already exists.";
     }
 
-        // *****************
-        // Bind user directory to Flocker volume≠
+    // *****************
+    // Bind user directory to Flocker volume≠
     Try<std::string> retcode = os::shell("%s %s %s",
                                          "mount --rbind", // Do we need -n here? Do we want it to appear in /etc/mtab?
                                          flockerDir.c_str(),

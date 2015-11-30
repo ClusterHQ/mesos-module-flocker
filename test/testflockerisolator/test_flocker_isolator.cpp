@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "test_flocker_isolator.hpp"
+#include "../../libisolator/FlockerEnvironmentalVariables.h"
 
 using ::testing::Return;
 
@@ -77,7 +78,7 @@ TEST_F(FlockerIsolatorTest, IsolatorCreateWithoutPortReturnsError) {
     EXPECT_TRUE(result.isError());
 }
 
-TEST_F(FlockerIsolatorTest, DISABLED_IsolatorPrepareCallsFlockerControlService) {
+TEST_F(FlockerIsolatorTest, IsolatorPrepareCallsFlockerControlService) {
 
     const string ip = "192.1.2.3";
     uint16_t port = 1234;
@@ -101,6 +102,9 @@ TEST_F(FlockerIsolatorTest, DISABLED_IsolatorPrepareCallsFlockerControlService) 
     executor.mutable_executor_id()->set_value("default");
     executor.mutable_command()->set_value("/bin/sleep");
     executor.mutable_command()->add_arguments("60");
+    Environment_Variable *envVar = executor.mutable_command()->mutable_environment()->add_variables();
+    envVar->set_name(FlockerEnvironmentalVariables::FLOCKER_CONTAINER_VOLUME_PATH);
+    envVar->set_value("/data/volume1");
     executor.set_name("Test Executor (/bin/sleep)");
 
     Result<string> user = os::user();
