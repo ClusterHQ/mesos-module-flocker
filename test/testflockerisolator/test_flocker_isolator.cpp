@@ -84,25 +84,13 @@ TEST_F(FlockerIsolatorTest, IsolatorPrepareCallsFlockerControlService) {
 
     MockFlockerControlServiceClient flockerControlClient(ip, port);
 
-    ON_CALL(flockerControlClient, getNodeId()).WillByDefault(Return(Try<string>::some("fef7fa02-c8c2-4c52-96b5-de70a8ef1925")));
+    EXPECT_CALL(flockerControlClient, getNodeId()).WillOnce(Return(Try<string>::some("fef7fa02-c8c2-4c52-96b5-de70a8ef1925")));
 
     UUID uuid = UUID::fromString("fef7fa02-c8c2-4c52-96b5-de70a8ef1925");
 
-    ON_CALL(flockerControlClient, createDataSet(uuid)).WillByDefault(Return(Try<string>::some(
+    EXPECT_CALL(flockerControlClient, createDataSet(uuid)).WillOnce(Return(Try<string>::some(
         "{\"deleted\": false, \"dataset_id\": \"e66d949c-ae91-4446-9115-824722a1e4b0\", \"primary\": \"fef7fa02-c8c2-4c52-96b5-de70a8ef1925\", \"metadata\": {}}"
     )));
-
-    Parameters parameters;
-
-    const char *flockerControlIp = "192.1.2.3";
-    Parameter* parameter = parameters.add_parameter();
-    parameter->set_key("flocker_control_ip");
-    parameter->set_value(flockerControlIp);
-
-    const char *flockerControlPort = "4523";
-    parameter = parameters.add_parameter();
-    parameter->set_key("flocker_control_port");
-    parameter->set_value(flockerControlPort);
 
     FlockerIsolator *isolator = new FlockerIsolator(&flockerControlClient);
 

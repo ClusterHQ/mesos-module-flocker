@@ -14,6 +14,6 @@ public:
 
     ~MockFlockerControlServiceClient() {}
 
-    MOCK_CONST_METHOD0(getNodeId, Try<string>());
+    MOCK_METHOD0(getNodeId, Try<string>());
     MOCK_METHOD1(createDataSet, Try<string>(UUID uuid));
 };
