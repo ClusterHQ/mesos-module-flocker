@@ -1,6 +1,9 @@
 #include "flocker-isolator.hpp"
 #include <mesos/module.hpp>
 #include <mesos/module/isolator.hpp>
+#include <stout/os/posix/exists.hpp>
+#include <stout/os/mkdir.hpp>
+#include <stout/os/posix/shell.hpp>
 
 using namespace mesos::slave;
 using namespace process;
@@ -64,6 +67,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
 
     // *****************
     // Read user directory from environmental variables.
+
     if (!executorInfo.command().has_environment()) {
         LOG(INFO) << "No environment specified for container. Not a Mesos-Flocker application. ";
         return None();
@@ -141,10 +145,8 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
 
         // *****************
         // Bind user directory to Flocker volume≠
-    Try<std::string> retcode = os::shell("%s %s %s",
-                                         "mount --rbind", // Do we need -n here? Do we want it to appear in /etc/mtab?
-                                         flockerDir.c_str(),
-                                         userDir.c_str());
+        // Do we need -n here? Do we want it to appear in /etc/mtab?
+    Try<std::string> retcode = os::shell("%s %s %s", "mount --rbind", flockerDir.c_str(), userDir.c_str());
 
     if (retcode.isError()) {
         LOG(ERROR) << "mount --rbind" << " failed to execute on "
