@@ -6,18 +6,21 @@
 using namespace std;
 using namespace mesos;
 
+/**
+ * Parses environmental variables from ExecutorInfo.
+ */
 class FlockerEnvironmentalVariables {
 public:
     static constexpr const char *FLOCKER_CONTAINER_VOLUME_PATH = "FLOCKER_CONTAINER_VOLUME_PATH";
 
-    Option<FlockerEnvironmentalVariables> parse(const ExecutorInfo &executorInfo);
+    static Option<FlockerEnvironmentalVariables> parse(const ExecutorInfo &executorInfo);
 
     Option<string> getUserDir();
 
 private:
     FlockerEnvironmentalVariables(const ExecutorInfo &executorInfo);
-
     Option<string> userDir = None();
+    bool parseError = false;
 };
 
 #endif //MESOS_MODULE_FLOCKER_FLOCKERENVIRONMENTALVARIABLES_H

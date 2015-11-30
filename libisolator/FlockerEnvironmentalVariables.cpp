@@ -11,7 +11,12 @@ Option<FlockerEnvironmentalVariables> FlockerEnvironmentalVariables::parse(const
         return None();
     }
 
-    return FlockerEnvironmentalVariables(executorInfo);
+    FlockerEnvironmentalVariables envVars = FlockerEnvironmentalVariables(executorInfo);
+    if (envVars.parseError) {
+        return None();
+    } else {
+        return envVars;
+    }
 }
 
 Option<string> FlockerEnvironmentalVariables::getUserDir() {
@@ -19,13 +24,19 @@ Option<string> FlockerEnvironmentalVariables::getUserDir() {
 }
 
 FlockerEnvironmentalVariables::FlockerEnvironmentalVariables(const ExecutorInfo &executorInfo) {
-            foreach (const auto &variable, executorInfo.command().environment().variables()) {
-                    if (strings::startsWith(variable.name(),
-                                            FlockerEnvironmentalVariables::FLOCKER_CONTAINER_VOLUME_PATH)) {
-                        this->userDir = variable.value();
-                        LOG(INFO) << "Container volume name ("
-                        << this->userDir.getOrElse("NO_DIR")
-                        << ") parsed from environment";
-                    }
-                }
+    foreach (const auto &variable, executorInfo.command().environment().variables()) {
+        if (strings::startsWith(variable.name(), FlockerEnvironmentalVariables::FLOCKER_CONTAINER_VOLUME_PATH)) {
+            this->userDir = variable.value();
+            LOG(INFO) << "Container volume name ("
+            << this->userDir.getOrElse("NO_DIR")
+            << ") parsed from environment";
+        }
+        // Add more parsers here.
+    }
+
+    if (this->getUserDir().isNone()) {
+        LOG(ERROR) << "Could not parse" << FLOCKER_CONTAINER_VOLUME_PATH <<
+        "from environmental variables. Not a Mesos-Flocker application";
+        this->parseError = true;
+    }
 }
