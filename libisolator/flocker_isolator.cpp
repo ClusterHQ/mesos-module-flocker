@@ -2,7 +2,6 @@
 #include <mesos/module.hpp>
 #include <mesos/module/isolator.hpp>
 #include <stout/os/posix/exists.hpp>
-#include <stout/os/mkdir.hpp>
 #include <stout/os/posix/shell.hpp>
 
 using namespace mesos::slave;
@@ -141,6 +140,8 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
                           userDir << "': " << mkdir.error();
             return process::Failure("Failed to create the target of the mount");
         }
+    } else {
+        LOG(WARNING) << "The user directory already exists.";
     }
 
         // *****************
