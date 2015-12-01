@@ -4,6 +4,7 @@
 #include <mesos/module/isolator.hpp>
 #include <stout/os/posix/exists.hpp>
 #include <stout/os/posix/shell.hpp>
+#include <stout/os/mkdir.hpp>
 
 using namespace mesos::slave;
 using namespace process;

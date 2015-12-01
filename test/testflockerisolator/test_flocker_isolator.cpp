@@ -110,4 +110,12 @@ TEST_F(FlockerIsolatorTest, DISABLED_IsolatorPrepareCallsFlockerControlService) 
     EXPECT_EQ(1, 1);
 }
 
+TEST_F(FlockerIsolatorTest, TestParseNodeId) {
+    std::string json = "{\"deleted\": false, \"dataset_id\": \"e66d949c-ae91-4446-9115-824722a1e4b0\", \"primary\": \"fef7fa02-c8c2-4c52-96b5-de70a8ef1925\", \"metadata\": {}}";
 
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.1", 80);
+
+    const string datasetUUID = client->getFlockerDataSetUUID(json);
+
+    ASSERT_EQ(datasetUUID, "e66d949c-ae91-4446-9115-824722a1e4b0");
+}

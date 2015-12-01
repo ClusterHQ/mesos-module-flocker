@@ -10,6 +10,7 @@
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <stout/nothing.hpp>
+#include <stout/json.hpp>
 
 using namespace std;
 
@@ -53,17 +54,17 @@ string FlockerControlServiceClient::getFlockerControlIp() {
     return flockerControlIp;
 }
 
-string FlockerControlServiceClient::getFlockerDataSetUUID(string string) {
-    LOG(INFO) << string;
-    unsigned long idLoc = string.find("\"dataset_id\":");
-    LOG(INFO) << idLoc;
-    unsigned long firstQuoteLoc = string.find("\"", idLoc + strlen("\"dataset_id\":"));
-    LOG(INFO) << firstQuoteLoc;
-    unsigned long lastQuoteLoc = string.find("\"", firstQuoteLoc + 1);
-    LOG(INFO) << lastQuoteLoc;
-    std::string retVal = string.substr(firstQuoteLoc + 1, lastQuoteLoc - firstQuoteLoc - 1);
-    LOG(INFO) << retVal;
-    return retVal;
+string FlockerControlServiceClient::getFlockerDataSetUUID(string json) {
+    Try<JSON::Object> parse = JSON::parse<JSON::Object>(json);
+    if (!parse.isSome()) {
+        std::cerr << "Could not parse JSON" << parse.get() << endl;
+        return "";
+    }
+    LOG(INFO) << parse.get() << endl;
+    JSON::Object dataSetJson = parse.get();
+    const std::string path = "dataset_id";
+    Result<JSON::String> datasetUUID = dataSetJson.find<JSON::String>(path);
+    return datasetUUID.get().value;
 }
 
 Try<string> FlockerControlServiceClient::getNodeId() {
