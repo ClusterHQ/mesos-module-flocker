@@ -69,23 +69,35 @@ string FlockerControlServiceClient::getFlockerDataSetUUID(string json) {
 
 Try<string> FlockerControlServiceClient::getNodeId() {
     Try<string> curlCommand = os::shell("curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" + flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/state/nodes");
-    LOG(INFO) << curlCommand.isSome();
-    if (curlCommand.isSome()) {
-        string curlResut = curlCommand.get();
-        LOG(INFO) << curlResut;
-        string ipAddress = getIpAddress();
-        ipAddress = "\"" + ipAddress + "\"";
-        LOG(INFO) << ipAddress;
-        unsigned long idLoc = curlResut.find(ipAddress);
-        LOG(INFO) << idLoc;
-        unsigned long firstQuoteLoc = curlResut.find("\"uuid\": \"", idLoc + ipAddress.length()) + strlen("\"uuid\": \"");
-        LOG(INFO) << firstQuoteLoc;
-        unsigned long lastQuoteLoc = curlResut.find("\"", firstQuoteLoc + strlen("\"uuid\": \""));
-        LOG(INFO) << lastQuoteLoc;
-        string retVal = curlResut.substr(firstQuoteLoc, lastQuoteLoc - firstQuoteLoc);
-        LOG(INFO) << retVal;
-        return retVal;
-    } else {
-        return Error("Unable to curl node state");
+    return parseNodeId(curlCommand);
+}
+
+Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes) {
+    Try<JSON::Array> nodeArray = JSON::parse<JSON::Array>(jsonNodes.get());
+    if (!nodeArray.isSome()) {
+        std::cerr << "Could not parse JSON" << nodeArray.get() << endl;
+        return Error("Could not parse JSON");
     }
+
+    const string &ipAddress = getIpAddress();
+
+    for (int j = 0; j < nodeArray->values.size(); ++j) {
+        JSON::Value value = nodeArray.get().values[j];
+        const JSON::Object &object = value.as<JSON::Object>();
+
+        LOG(INFO) << object << endl;
+
+        const char *path = "host";
+        const Result<JSON::String> &result = object.find<JSON::String>(path);
+        LOG(INFO) << result.get() << endl;
+
+        if (result.get() == ipAddress) {
+            const Result<JSON::String> &nodeResult = object.find<JSON::String>("uuid");
+            std::string nodeId = nodeResult.get().value;
+            return Try<string>::some(nodeId);
+        }
+
+    }
+
+    return Error("Unable to find node ID for node: " + ipAddress);
 }

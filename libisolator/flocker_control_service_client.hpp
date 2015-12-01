@@ -30,6 +30,8 @@ public:
 
     string getFlockerDataSetUUID(string);
 
+    Try<string> parseNodeId(Try<string> jsonNodes);
+
 private:
 
     string getIpAddress();

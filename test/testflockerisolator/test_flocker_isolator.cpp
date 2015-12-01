@@ -110,7 +110,9 @@ TEST_F(FlockerIsolatorTest, DISABLED_IsolatorPrepareCallsFlockerControlService) 
     EXPECT_EQ(1, 1);
 }
 
-TEST_F(FlockerIsolatorTest, TestParseNodeId) {
+// TODO (Frank): Extract parser and move these tests to parser unit test
+
+TEST_F(FlockerIsolatorTest, TestGetFlockerDataSetUUID) {
     std::string json = "{\"deleted\": false, \"dataset_id\": \"e66d949c-ae91-4446-9115-824722a1e4b0\", \"primary\": \"fef7fa02-c8c2-4c52-96b5-de70a8ef1925\", \"metadata\": {}}";
 
     FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.1", 80);
@@ -119,3 +121,14 @@ TEST_F(FlockerIsolatorTest, TestParseNodeId) {
 
     ASSERT_EQ(datasetUUID, "e66d949c-ae91-4446-9115-824722a1e4b0");
 }
+
+TEST_F(FlockerIsolatorTest, TestParseNodeId) {
+    Try<string> json = Try<string>::some("[{\"host\": \"192.168.1.101\", \"uuid\": \"fef7fa02-c8c2-4c52-96b5-de70a8ef1925\"}, {\"host\": \"10.0.0.200\", \"uuid\": \"546c7fe2-0da6-4e7a-975b-1e752a88b092\"}, {\"host\": \"10.0.0.141\", \"uuid\": \"aac58a32-58be-4cf6-b65c-42d35d064d16\"}]");
+
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80);
+
+    const Try<string> &nodeId = client->parseNodeId(json);
+
+    ASSERT_EQ(nodeId.get(), "fef7fa02-c8c2-4c52-96b5-de70a8ef1925");
+}
+
