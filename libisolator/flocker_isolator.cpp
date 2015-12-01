@@ -84,7 +84,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         LOG(INFO) << nodeId.get();
     }
 
-    UUID uuid = UUID::fromString(resultJson.get());
+    UUID uuid = UUID::fromString(nodeId.get());
 
     LOG(INFO) << "Got node UUID: " << uuid << endl;
 

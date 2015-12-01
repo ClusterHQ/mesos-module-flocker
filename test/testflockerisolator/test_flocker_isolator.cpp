@@ -78,7 +78,7 @@ TEST_F(FlockerIsolatorTest, IsolatorCreateWithoutPortReturnsError) {
     EXPECT_TRUE(result.isError());
 }
 
-TEST_F(FlockerIsolatorTest, IsolatorPrepareCallsFlockerControlService) {
+TEST_F(FlockerIsolatorTest, DISABLED_IsolatorPrepareCallsFlockerControlService) {
 
     const string ip = "192.1.2.3";
     uint16_t port = 1234;
