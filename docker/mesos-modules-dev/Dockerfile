@@ -1,46 +1,30 @@
-FROM ubuntu-upstart:14.04
-MAINTAINER Mesosphere <support@mesosphere.io>
+FROM ubuntu:15.10
 
 ARG version=0.25.0
 # Install Dependencies
 
 RUN apt-get update -q --fix-missing
-RUN apt-get -qy install software-properties-common # (for add-apt-repository)
-RUN add-apt-repository ppa:george-edison55/cmake-3.x
-RUN apt-get update -q
-RUN apt-cache policy cmake
-RUN apt-get -qy install \
+RUN apt-get -q -y install \
   build-essential                         \
+  automake \
   autoconf                                \
-  automake                                \
-  cmake=3.2.2-2ubuntu2~ubuntu14.04.1~ppa1 \
-  ca-certificates                         \
-  gdb                                     \
+  libtool \
+  cmake                                   \
   wget                                    \
   git-core                                \
-  libcurl4-nss-dev                        \
-  libsasl2-dev                            \
-  libtool                                 \
-  libsvn-dev                              \
-  libapr1-dev                             \
-  libgoogle-glog-dev                      \
-  libboost-dev                            \
-  protobuf-compiler                       \
-  libprotobuf-dev                         \
   make                                    \
-  python                                  \
-  python2.7                               \
-  libpython-dev                           \
-  python-dev                              \
-  python-protobuf                         \
-  python-setuptools                       \
-  heimdal-clients                         \
-  libsasl2-modules-gssapi-heimdal         \
+  openjdk-7-jdk                           \
   unzip                                   \
+  python-dev \
+  python-boto \
+  libcurl4-nss-dev \
+  libsasl2-2 libsasl2-dev libsasl2-modules sasl2-bin \
+  libapr1-dev \
+  libsvn-dev    \
+  libgoogle-glog-dev \
+    maven \
+    zlib1g-dev \
   --no-install-recommends
-
-# Install the picojson headers
-RUN wget https://raw.githubusercontent.com/kazuho/picojson/v1.3.0/picojson.h -O /usr/local/include/picojson.h
 
 # Prepare to build Mesos
 RUN mkdir -p /mesos
@@ -60,7 +44,7 @@ RUN git log -n 1
 RUN ./bootstrap
 
 # Configure
-RUN mkdir build && cd build && ../configure --disable-java --disable-optimize --without-included-zookeeper --with-glog=/usr/local --with-protobuf=/usr --with-boost=/usr/local
+RUN mkdir build && cd build && ../configure --disable-optimize --without-included-zookeeper
 
 # Build Mesos
 RUN cd build && make -j 2 install
