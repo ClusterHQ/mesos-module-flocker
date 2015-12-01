@@ -77,10 +77,11 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
 
     // *****************
     // Send REST command to Flocker to get the current Flocker node ID
-    Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
-    if (resultJson.isError()) {
-        std::cerr << "Could not get node id for container: " << containerId << endl;
-        return Failure("Could not create node if for container: " + containerId.value());
+    Try<std::string> nodeId = flockerControlServiceClient->getNodeId();
+    if (nodeId.isError()) {
+        return Failure("Could not get node id for container: " + containerId.value());
+    } else {
+        LOG(INFO) << nodeId.get();
     }
 
     UUID uuid = UUID::fromString(resultJson.get());
@@ -93,6 +94,8 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     if (datasetJson.isError()) {
         std::cerr << "Could not create dataset for container: " << containerId << endl;
         return Failure("Could not create dataset for container: " + containerId.value());
+    } else {
+        LOG(INFO) << datasetJson.get();
     }
 
     LOG(INFO) << "Created dataset: " << datasetJson.get() << endl;
