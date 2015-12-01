@@ -4,6 +4,13 @@
 
 #include <stout/os/posix/shell.hpp>
 
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <stout/nothing.hpp>
+
 using namespace std;
 
 FlockerControlServiceClient::FlockerControlServiceClient(const string flockerControlIp, uint16_t flockerControlPort) {
@@ -11,8 +18,24 @@ FlockerControlServiceClient::FlockerControlServiceClient(const string flockerCon
     this->flockerControlPort    = flockerControlPort;
 }
 
-Try<string> FlockerControlServiceClient::getNodeId() {
-    return os::shell("curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" + flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/state/nodes");
+
+string FlockerControlServiceClient::getIpAddress() {
+    int fd;
+    struct ifreq ifr;
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    /* I want to get an IPv4 IP address */
+    ifr.ifr_addr.sa_family = AF_INET;
+
+    /* I want IP address attached to "eth0" */
+    strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
+
+    ioctl(fd, SIOCGIFADDR, &ifr);
+
+    close(fd);
+
+    return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 }
 
 Try<string> FlockerControlServiceClient::createDataSet(UUID uuid) {
@@ -41,4 +64,27 @@ string FlockerControlServiceClient::getFlockerDataSetUUID(string string) {
     std::string retVal = string.substr(firstQuoteLoc + 1, lastQuoteLoc - firstQuoteLoc - 1);
     LOG(INFO) << retVal;
     return retVal;
+}
+
+Try<string> FlockerControlServiceClient::getNodeId() {
+    Try<string> curlCommand = os::shell("curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" + flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/state/nodes");
+    LOG(INFO) << curlCommand.isSome();
+    if (curlCommand.isSome()) {
+        string curlResut = curlCommand.get();
+        LOG(INFO) << curlResut;
+        string ipAddress = getIpAddress();
+        ipAddress = "\"" + ipAddress + "\"";
+        LOG(INFO) << ipAddress;
+        unsigned long idLoc = curlResut.find(ipAddress);
+        LOG(INFO) << idLoc;
+        unsigned long firstQuoteLoc = curlResut.find("\"uuid\": \"", idLoc + ipAddress.length()) + strlen("\"uuid\": \"");
+        LOG(INFO) << firstQuoteLoc;
+        unsigned long lastQuoteLoc = curlResut.find("\"", firstQuoteLoc + strlen("\"uuid\": \""));
+        LOG(INFO) << lastQuoteLoc;
+        string retVal = curlResut.substr(firstQuoteLoc, lastQuoteLoc - firstQuoteLoc);
+        LOG(INFO) << retVal;
+        return retVal;
+    } else {
+        return Error("Unable to curl node state");
+    }
 }

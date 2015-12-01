@@ -74,14 +74,14 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
 
     // *****************
     // Send REST command to Flocker to get the current Flocker node ID
-    Try<std::string> resultJson = flockerControlServiceClient->getNodeId();
-    if (resultJson.isError()) {
-        std::cerr << "Could not get node id for container: " << containerId << endl;
-        return Failure("Could not create node if for container: " + containerId.value());
+    Try<std::string> nodeId = flockerControlServiceClient->getNodeId();
+    if (nodeId.isError()) {
+        return Failure("Could not get node id for container: " + containerId.value());
+    } else {
+        LOG(INFO) << nodeId.get();
     }
 
-    // TODO: Parse uuid from nodeIdJson
-    UUID uuid = UUID::fromString("fef7fa02-c8c2-4c52-96b5-de70a8ef1925");
+    UUID uuid = UUID::fromString(nodeId.get());
 
     // *****************
     // Send REST command to Flocker to create a new dataset
@@ -89,6 +89,8 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     if (datasetJson.isError()) {
         std::cerr << "Could not create dataset for container: " << containerId << endl;
         return Failure("Could not create dataset for container: " + containerId.value());
+    } else {
+        LOG(INFO) << datasetJson.get();
     }
 
     std::string datasetUUID = flockerControlServiceClient->getFlockerDataSetUUID(datasetJson.get());
@@ -106,7 +108,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         unsigned long watchdog = 0;
         while ((!os::exists(flockerDir))) {
             usleep(1000000); // Sleep for 1 s.
-            if (watchdog++ > 60) {
+            if (watchdog++ > 300) {
                 LOG(ERROR) << "Flocker did not mount within 60 s" << containerId << endl;
                 return Failure("Flocker did not mount within 60 s: " + containerId.value());
             }

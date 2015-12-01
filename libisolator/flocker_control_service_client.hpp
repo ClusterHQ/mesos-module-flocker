@@ -32,6 +32,8 @@ public:
 
 private:
 
+    string getIpAddress();
+
     std::string flockerControlIp;
 
     uint16_t flockerControlPort;
