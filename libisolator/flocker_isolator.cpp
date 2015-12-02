@@ -4,7 +4,6 @@
 #include <mesos/module/isolator.hpp>
 #include <stout/os/posix/exists.hpp>
 #include <stout/os/posix/shell.hpp>
-#include <stout/os/mkdir.hpp>
 
 using namespace mesos::slave;
 using namespace process;
@@ -72,7 +71,6 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         LOG(INFO) << "No environment specified for container. Not a Mesos-Flocker application. ";
         return None();
     }
-
     LOG(INFO) << "Parsed env vars" << endl;
 
     // *****************
@@ -81,35 +79,27 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     if (nodeId.isError()) {
         return Failure("Could not get node id for container: " + containerId.value());
     } else {
-        LOG(INFO) << nodeId.get();
+        LOG(INFO) << "Got node UUID: " << nodeId.get() << endl;
     }
-
-    UUID uuid = UUID::fromString(nodeId.get());
-
-    LOG(INFO) << "Got node UUID: " << uuid << endl;
 
     // *****************
     // Send REST command to Flocker to create a new dataset
-    Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(uuid);
+    Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(UUID::fromString(nodeId.get()));
     if (datasetJson.isError()) {
         std::cerr << "Could not create dataset for container: " << containerId << endl;
         return Failure("Could not create dataset for container: " + containerId.value());
     } else {
-        LOG(INFO) << datasetJson.get();
+        LOG(INFO) << "Created dataset: " << datasetJson.get() << endl;
     }
-
-    LOG(INFO) << "Created dataset: " << datasetJson.get() << endl;
 
     Try<JSON::Object> parse = JSON::parse<JSON::Object>(datasetJson.get());
     if (parse.isError()) {
         std::cerr << "Could not parse JSON" << endl;
         return Failure("Could not create node if for container: " + containerId.value());
     }
-    LOG(INFO) << parse.get() << endl;
+    LOG(INFO) << "Parsed JSON: " << parse.get() << endl;
 
-    JSON::Object dataSetJson = parse.get();
-
-    std::string datasetUUID = dataSetJson.values["dataset_id"].as<string>();
+    std::string datasetUUID = parse.get().values["dataset_id"].as<string>();
 
     LOG(INFO) << "Got dataset UUID: " << datasetUUID << endl;
 
