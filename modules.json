@@ -1,0 +1,12 @@
+{
+  "libraries": [
+    {
+      "file": "/home/ubuntu/libisolator.so",
+      "modules": [
+        {
+          "name": "flocker_isolator"
+        }
+      ]
+    }
+  ]
+}
