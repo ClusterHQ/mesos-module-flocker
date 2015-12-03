@@ -26,12 +26,12 @@ RUN apt-get -q -y install \
     zlib1g-dev \
   --no-install-recommends
 
+# Install the picojson headers
+RUN wget https://raw.githubusercontent.com/kazuho/picojson/v1.3.0/picojson.h -O /usr/local/include/picojson.h
+
 # Prepare to build Mesos
 RUN mkdir -p /mesos
 RUN mkdir -p /tmp
-RUN mkdir -p /usr/share/java/
-RUN wget http://search.maven.org/remotecontent?filepath=com/google/protobuf/protobuf-java/2.5.0/protobuf-java-2.5.0.jar -O protobuf.jar
-RUN mv protobuf.jar /usr/share/java/
 
 WORKDIR /mesos
 
@@ -44,11 +44,7 @@ RUN git log -n 1
 RUN ./bootstrap
 
 # Configure
-RUN mkdir build && cd build && ../configure --disable-optimize --without-included-zookeeper
+RUN mkdir build && cd build && ../configure --disable-java --disable-optimize --without-included-zookeeper
 
 # Build Mesos
 RUN cd build && make -j 2 install
-
-# Install python eggs
-RUN easy_install /mesos/build/src/python/dist/mesos.interface-*.egg
-RUN easy_install /mesos/build/src/python/dist/mesos.native-*.egg
