@@ -3,7 +3,7 @@ add_library(isolator SHARED
         flocker-isolator.hpp
         ${Mesos_BUILD_DIR}/src/slave/isolator.pb.cc
         flocker_control_service_client.cpp
-        flocker_control_service_client.hpp FlockerEnvironmentalVariables.cpp FlockerEnvironmentalVariables.h)
+        flocker_control_service_client.hpp FlockerEnvironmentalVariables.cpp FlockerEnvironmentalVariables.h IpUtils.cpp IpUtils.hpp)
 
 target_link_libraries(isolator
         ${Mesos_LIBRARIES}

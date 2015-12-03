@@ -6,6 +6,7 @@
 #include "gmock/gmock.h"
 #include "test_flocker_isolator.hpp"
 #include "../../libisolator/FlockerEnvironmentalVariables.h"
+#include "../../libisolator/IpUtils.hpp"
 
 using ::testing::Return;
 
@@ -17,7 +18,21 @@ FlockerIsolatorTest::FlockerIsolatorTest() { };
 
 FlockerIsolatorTest::~FlockerIsolatorTest() {};
 
-void FlockerIsolatorTest::SetUp() {};
+class MockIpUtils : public IpUtils {
+
+    string getIpAddress() {
+        return "192.168.1.1";
+    }
+
+};
+
+static IpUtils *ipUtils;
+
+void FlockerIsolatorTest::SetUp() {
+
+    ipUtils = new MockIpUtils();
+
+};
 
 void FlockerIsolatorTest::TearDown() {};
 
@@ -83,7 +98,7 @@ TEST_F(FlockerIsolatorTest, DISABLED_IsolatorPrepareCallsFlockerControlService) 
     const string ip = "192.1.2.3";
     uint16_t port = 1234;
 
-    MockFlockerControlServiceClient flockerControlClient(ip, port);
+    MockFlockerControlServiceClient flockerControlClient(ip, port, ipUtils);
 
     EXPECT_CALL(flockerControlClient, getNodeId()).WillOnce(Return(Try<string>::some("fef7fa02-c8c2-4c52-96b5-de70a8ef1925")));
 
@@ -119,7 +134,7 @@ TEST_F(FlockerIsolatorTest, DISABLED_IsolatorPrepareCallsFlockerControlService) 
 TEST_F(FlockerIsolatorTest, TestGetFlockerDataSetUUID) {
     std::string json = "{\"deleted\": false, \"dataset_id\": \"e66d949c-ae91-4446-9115-824722a1e4b0\", \"primary\": \"fef7fa02-c8c2-4c52-96b5-de70a8ef1925\", \"metadata\": {}}";
 
-    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.1", 80);
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.1", 80, ipUtils);
 
     const string datasetUUID = client->getFlockerDataSetUUID(json);
 
@@ -127,9 +142,9 @@ TEST_F(FlockerIsolatorTest, TestGetFlockerDataSetUUID) {
 }
 
 TEST_F(FlockerIsolatorTest, TestParseNodeId) {
-    Try<string> json = Try<string>::some("[{\"host\": \"192.168.1.101\", \"uuid\": \"fef7fa02-c8c2-4c52-96b5-de70a8ef1925\"}, {\"host\": \"10.0.0.200\", \"uuid\": \"546c7fe2-0da6-4e7a-975b-1e752a88b092\"}, {\"host\": \"10.0.0.141\", \"uuid\": \"aac58a32-58be-4cf6-b65c-42d35d064d16\"}]");
+    Try<string> json = Try<string>::some("[{\"host\": \"192.168.1.1\", \"uuid\": \"fef7fa02-c8c2-4c52-96b5-de70a8ef1925\"}, {\"host\": \"10.0.0.200\", \"uuid\": \"546c7fe2-0da6-4e7a-975b-1e752a88b092\"}, {\"host\": \"10.0.0.141\", \"uuid\": \"aac58a32-58be-4cf6-b65c-42d35d064d16\"}]");
 
-    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80);
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.1", 80, ipUtils);
 
     const Try<string> &nodeId = client->parseNodeId(json);
 
@@ -139,11 +154,11 @@ TEST_F(FlockerIsolatorTest, TestParseNodeId) {
 TEST_F(FlockerIsolatorTest, TestGetDataSets) {
     Try<string> json = Try<string>::some("[{\"dataset_id\": \"a5f75af7-3fb9-4c1a-81ce-efeeb9f2c788\", \"primary\": \"e66d949c-ae91-4446-9115-824722a1e4b0\", \"metadata\": { \"FLOCKER_ID\": \"123\"}, \"deleted\": false}]");
 
-    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80);
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80, ipUtils);
 
     UUID uuid = UUID::fromString("e66d949c-ae91-4446-9115-824722a1e4b0");
 
-    const Option<string> dataSet = client->getDataSetForNodeId(json, uuid);
+    const Option<string> dataSet = client->parseDataSet(json, uuid);
 
     ASSERT_EQ(dataSet.get(), "a5f75af7-3fb9-4c1a-81ce-efeeb9f2c788");
 }
