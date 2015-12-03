@@ -32,9 +32,9 @@ public:
 
     Try<string> parseNodeId(Try<string> jsonNodes);
 
-    Option<string> getDataSetForNodeId(UUID nodeId);
+    Option<string> getDataSetForFlockerId(string flockerId);
 
-    Option<string> parseDataSet(Try<string> aTry, UUID uuid);
+    Option<string> parseDataSet(Try<string> aTry, string flockerId);
 
     Try<string> moveDataSet(string option, UUID uuid);
 

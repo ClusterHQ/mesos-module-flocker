@@ -55,9 +55,9 @@ Try<string> FlockerControlServiceClient::getNodeId() {
     return parseNodeId(curlCommand);
 }
 
-Option<string> FlockerControlServiceClient::getDataSetForNodeId(UUID nodeId) {
+Option<string> FlockerControlServiceClient::getDataSetForFlockerId(string flockerId) {
     Try<string> curlCommand = os::shell("curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" + flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets");
-    return parseDataSet(curlCommand.get(), nodeId);
+    return parseDataSet(curlCommand.get(), flockerId);
 }
 
 Try<string> FlockerControlServiceClient::moveDataSet(string dataSet, const UUID nodeId) {
@@ -96,7 +96,7 @@ Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes)
     return Error("Unable to find node ID for node: " + ipAddress);
 }
 
-Option<string> FlockerControlServiceClient::parseDataSet(Try<string> jsonDataSets, UUID nodeId) {
+Option<string> FlockerControlServiceClient::parseDataSet(Try<string> jsonDataSets, string flockerId) {
     Try<JSON::Array> nodeArray = JSON::parse<JSON::Array>(jsonDataSets.get());
     if (!nodeArray.isSome()) {
         std::cerr << "Could not parse JSON" << nodeArray.get() << endl;
@@ -109,13 +109,18 @@ Option<string> FlockerControlServiceClient::parseDataSet(Try<string> jsonDataSet
 
         LOG(INFO) << object << endl;
 
-        const Result<JSON::String> &primary = object.find<JSON::String>("primary");
+        const Result<JSON::Object> &metadata = object.find<JSON::Object>("metadata");
 
-        LOG(INFO) << primary.get() << endl;
+        if (metadata.isNone()) {
+            continue;
+        }
 
-        if (primary.get().value == nodeId.toString()) {
-            const Result<JSON::String> &nodeResult = object.find<JSON::String>("dataset_id");
-            std::string dataSetId = nodeResult.get().value;
+        const Result<JSON::String> &flockerIdValue = metadata->find<JSON::String>("FLOCKER_ID");
+
+        LOG(INFO) << "Found metadata " << metadata.get() << endl;
+
+        if (flockerIdValue.get() == flockerId) {
+            std::string dataSetId = flockerIdValue.get().value;
             return Option<string>::some(dataSetId);
         }
     }

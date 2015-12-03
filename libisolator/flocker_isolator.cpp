@@ -84,7 +84,9 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
 
     const UUID &uuid = UUID::fromString(nodeId.get());
 
-    Option<string> dataSet = flockerControlServiceClient->getDataSetForNodeId(uuid);
+    const Option<string> &flockerId = envVars->getUserFlockerId();
+    
+    Option<string> dataSet = flockerControlServiceClient->getDataSetForFlockerId(flockerId.get());
     
     if (dataSet.isNone()) {
         // *****************
