@@ -135,11 +135,13 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
                                              envVars->getUserDir().get().c_str());
 
         if (retcode.isError()) {
-            LOG(ERROR) << "mount --rbind" << " failed to execute on "
+            LOG(ERROR) << "ln -s" << " failed to execute on "
             << flockerDir
             << retcode.error();
         } else {
-            LOG(INFO) << "mount --rbind" << " mounted on:"
+            LOG(INFO) << "ln -s" << " symlinked on:"
+            << flockerDir
+            << " "
             << envVars->getUserDir().get();
 
         }
