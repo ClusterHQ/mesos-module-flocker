@@ -32,6 +32,8 @@ public:
 
     Try<string> parseNodeId(Try<string> jsonNodes);
 
+    Option<string> getDataSetForNodeId(Try<string> aTry, UUID uuid);
+
 private:
 
     string getIpAddress();

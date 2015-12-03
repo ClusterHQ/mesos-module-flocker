@@ -88,8 +88,7 @@ Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes)
 
         LOG(INFO) << object << endl;
 
-        const char *path = "host";
-        const Result<JSON::String> &result = object.find<JSON::String>(path);
+        const Result<JSON::String> &result = object.find<JSON::String>("host");
         LOG(INFO) << result.get() << endl;
 
         if (result.get() == ipAddress) {
@@ -97,8 +96,34 @@ Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes)
             std::string nodeId = nodeResult.get().value;
             return Try<string>::some(nodeId);
         }
-
     }
 
     return Error("Unable to find node ID for node: " + ipAddress);
+}
+
+Option<string> FlockerControlServiceClient::getDataSetForNodeId(Try<string> jsonDataSets, UUID nodeId) {
+    Try<JSON::Array> nodeArray = JSON::parse<JSON::Array>(jsonDataSets.get());
+    if (!nodeArray.isSome()) {
+        std::cerr << "Could not parse JSON" << nodeArray.get() << endl;
+        return Option<string>::none();
+    }
+
+    for (int j = 0; j < nodeArray->values.size(); ++j) {
+        JSON::Value value = nodeArray.get().values[j];
+        const JSON::Object &object = value.as<JSON::Object>();
+
+        LOG(INFO) << object << endl;
+
+        const Result<JSON::String> &primary = object.find<JSON::String>("primary");
+
+        LOG(INFO) << primary.get() << endl;
+
+        if (primary.get().value == nodeId.toString()) {
+            const Result<JSON::String> &nodeResult = object.find<JSON::String>("dataset_id");
+            std::string dataSetId = nodeResult.get().value;
+            return Option<string>::some(dataSetId);
+        }
+    }
+
+    return Option<string>::none();
 }

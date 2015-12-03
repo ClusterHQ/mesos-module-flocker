@@ -136,3 +136,14 @@ TEST_F(FlockerIsolatorTest, TestParseNodeId) {
     ASSERT_EQ(nodeId.get(), "fef7fa02-c8c2-4c52-96b5-de70a8ef1925");
 }
 
+TEST_F(FlockerIsolatorTest, TestGetDataSets) {
+    Try<string> json = Try<string>::some("[{\"dataset_id\": \"a5f75af7-3fb9-4c1a-81ce-efeeb9f2c788\", \"primary\": \"e66d949c-ae91-4446-9115-824722a1e4b0\", \"metadata\": { \"FLOCKER_ID\": \"123\"}, \"deleted\": false}]");
+
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80);
+
+    UUID uuid = UUID::fromString("e66d949c-ae91-4446-9115-824722a1e4b0");
+
+    const Option<string> dataSet = client->getDataSetForNodeId(json, uuid);
+
+    ASSERT_EQ(dataSet.get(), "a5f75af7-3fb9-4c1a-81ce-efeeb9f2c788");
+}
