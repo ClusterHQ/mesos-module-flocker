@@ -82,14 +82,14 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         LOG(INFO) << "Got node UUID: " << nodeId.get() << endl;
     }
 
-    const UUID &uuid = UUID::fromString(nodeId.get());
+    const UUID &nodeUUID = UUID::fromString(nodeId.get());
 
-    Option<string> dataSet = flockerControlServiceClient->getDataSetForNodeId(uuid);
-    
-    if (dataSet.isNone()) {
+    Option<string> datasetUUID = flockerControlServiceClient->getDataSetForFlockerId(envVars->getUserFlockerId());
+
+    if (datasetUUID.isNone()) {
         // *****************
         // Send REST command to Flocker to create a new dataset
-        Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(uuid);
+        Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(nodeUUID);
         if (datasetJson.isError()) {
             std::cerr << "Could not create dataset for container: " << containerId << endl;
             return Failure("Could not create dataset for container: " + containerId.value());
@@ -105,9 +105,9 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         LOG(INFO) << "Parsed JSON: " << parse.get() << endl;
 
         // Determine the source of the mount.
-        std::string flockerDir = path::join("/flocker", dataSet.get()); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
+        std::string flockerDir = path::join("/flocker", datasetUUID.get()); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
 
-        LOG(INFO) << "Waiting for" << dataSet.get() << "to mount";
+        LOG(INFO) << "Waiting for" << datasetUUID.get() << "to mount";
 
         // *****************
         // Wait for the flocker dataset to mount
@@ -151,7 +151,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     } else {
         // *****************
         // Send REST command to Flocker to move dataset
-        Try<std::string> datasetJson = flockerControlServiceClient->moveDataSet(dataSet.get(), uuid);
+        Try<std::string> datasetJson = flockerControlServiceClient->moveDataSet(datasetUUID.get(), nodeUUID);
         if (datasetJson.isError()) {
             std::cerr << "Could not move dataset for container: " << containerId << endl;
             return Failure("Could not move dataset for container: " + containerId.value());
