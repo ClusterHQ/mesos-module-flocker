@@ -81,23 +81,23 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
 
     // *****************
     // Send REST command to Flocker to get the current Flocker node ID
-    Try<std::string> nodeId = flockerControlServiceClient->getNodeId();
-    if (nodeId.isError()) {
+    Try<std::string> nodeUUID = flockerControlServiceClient->getNodeId();
+    if (nodeUUID.isError()) {
         return Failure("Could not get node id for container: " + containerId.value());
     } else {
-        LOG(INFO) << "Got node UUID: " << nodeId.get() << endl;
+        LOG(INFO) << "Got node UUID: " << nodeUUID.get() << endl;
     }
 
-    const UUID &nodeUUID = UUID::fromString(nodeId.get());
+    const UUID &nodeUUIDString = UUID::fromString(nodeUUID.get());
 
     const Option<string> &flockerId = envVars->getUserFlockerId();
 
-    Option<string> dataSet = flockerControlServiceClient->getDataSetForFlockerId(flockerId.get());
+    Option<string> datasetUUID = flockerControlServiceClient->getDataSetForFlockerId(flockerId.get());
     
-    if (dataSet.isNone()) {
+    if (datasetUUID.isNone()) {
         // *****************
         // Send REST command to Flocker to create a new dataset
-        Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(uuid);
+        Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(nodeUUIDString);
         if (datasetJson.isError()) {
             std::cerr << "Could not create dataset for container: " << containerId << endl;
             return Failure("Could not create dataset for container: " + containerId.value());
@@ -150,7 +150,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     } else {
         // *****************
         // Send REST command to Flocker to move dataset
-        Try<std::string> datasetJson = flockerControlServiceClient->moveDataSet(datasetUUID.get(), nodeUUID);
+        Try<std::string> datasetJson = flockerControlServiceClient->moveDataSet(datasetUUID.get(), nodeUUIDString);
         if (datasetJson.isError()) {
             std::cerr << "Could not move dataset for container: " << containerId << endl;
             return Failure("Could not move dataset for container: " + containerId.value());
