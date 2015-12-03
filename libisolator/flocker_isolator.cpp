@@ -73,6 +73,12 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     }
     LOG(INFO) << "Parsed env vars" << endl;
 
+    // If the user dir already exists, bail out.
+    if (os::exists(envVars->getUserDir().get())) {
+        LOG(ERROR) << "User dir already exists. Stopping to prevent data loss. " << envVars->getUserDir().get();
+        return Failure("User dir already exists");
+    }
+
     // *****************
     // Send REST command to Flocker to get the current Flocker node ID
     Try<std::string> nodeId = flockerControlServiceClient->getNodeId();
@@ -82,10 +88,10 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         LOG(INFO) << "Got node UUID: " << nodeId.get() << endl;
     }
 
-    const UUID &uuid = UUID::fromString(nodeId.get());
+    const UUID &nodeUUID = UUID::fromString(nodeId.get());
 
     const Option<string> &flockerId = envVars->getUserFlockerId();
-    
+
     Option<string> dataSet = flockerControlServiceClient->getDataSetForFlockerId(flockerId.get());
     
     if (dataSet.isNone()) {
@@ -107,9 +113,9 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
         LOG(INFO) << "Parsed JSON: " << parse.get() << endl;
 
         // Determine the source of the mount.
-        std::string flockerDir = path::join("/flocker", dataSet.get()); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
+        std::string flockerDir = path::join("/flocker", datasetUUID.get()); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
 
-        LOG(INFO) << "Waiting for" << dataSet.get() << "to mount";
+        LOG(INFO) << "Waiting for" << datasetUUID.get() << "to mount";
 
         // *****************
         // Wait for the flocker dataset to mount
@@ -122,38 +128,29 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
             }
         }
 
-        // If the user dir doesn't exist on the host, create.
-        if (!os::exists(envVars->getUserDir().get())) {
-            Try<Nothing> mkdir = os::mkdir(envVars->getUserDir().get());
-            if (mkdir.isError()) {
-                LOG(ERROR) << "Failed to create the target of the mount at '" +
-                              envVars->getUserDir().get() << "': " << mkdir.error();
-                return process::Failure("Failed to create the target of the mount");
-            }
-        } else {
-            LOG(WARNING) << "The user directory already exists.";
-        }
-
         // *****************
-        // Bind user directory to Flocker volume≠
+        // Symlink to the flocker dir
+        // sudo ln -s /flocker/7dfae970-fb3f-4ca3-8d9a-a93271d8f1e3 /tmp/data
         Try<std::string> retcode = os::shell("%s %s %s",
-                                             "mount --rbind", // Do we need -n here? Do we want it to appear in /etc/mtab?
+                                             "ln -s", // Do we need -n here? Do we want it to appear in /etc/mtab?
                                              flockerDir.c_str(),
                                              envVars->getUserDir().get().c_str());
 
         if (retcode.isError()) {
-            LOG(ERROR) << "mount --rbind" << " failed to execute on "
+            LOG(ERROR) << "ln -s" << " failed to execute on "
             << flockerDir
             << retcode.error();
         } else {
-            LOG(INFO) << "mount --rbind" << " mounted on:"
+            LOG(INFO) << "ln -s" << " symlinked on:"
+            << flockerDir
+            << " "
             << envVars->getUserDir().get();
 
         }
     } else {
         // *****************
         // Send REST command to Flocker to move dataset
-        Try<std::string> datasetJson = flockerControlServiceClient->moveDataSet(dataSet.get(), uuid);
+        Try<std::string> datasetJson = flockerControlServiceClient->moveDataSet(datasetUUID.get(), nodeUUID);
         if (datasetJson.isError()) {
             std::cerr << "Could not move dataset for container: " << containerId << endl;
             return Failure("Could not move dataset for container: " + containerId.value());
@@ -166,7 +163,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
             std::cerr << "Could not parse JSON" << endl;
             return Failure("Could not move dataset node if for container: " + containerId.value());
         }
-        LOG(INFO) << "Parsed JSON: " << parse.get() << endl;        
+        LOG(INFO) << "Parsed JSON: " << parse.get() << endl;
     }
 
     return None();
