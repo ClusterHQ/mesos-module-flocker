@@ -33,8 +33,11 @@ message(STATUS "Mesos library used: \"${Mesos_LIBRARIES}\"")
 
 # Enable C++11 for Clang on MacOS X.
 if(APPLE AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++ -DPICOJSON_USE_INT64 -D__STDC_FORMAT_MACROS")
+else()
+  SET( CMAKE_CXX_FLAGS  "-DPICOJSON_USE_INT64 -D__STDC_FORMAT_MACROS" )
 endif(APPLE AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
+
 
 enable_testing()
 

@@ -5,6 +5,8 @@ ADD_EXECUTABLE(test_flocker_isolator ${SRCS})
 TARGET_LINK_LIBRARIES(test_flocker_isolator
         isolator
         ${MESOS_LIBRARIES}
+        glog
+        protobuf
         libgtest
         libgmock
         )

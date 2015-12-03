@@ -1,12 +1,22 @@
-{
-  "libraries": [
-    {
-      "file": "/home/ubuntu/libisolator.so",
-      "modules": [
-        {
-          "name": "flocker_isolator"
-        }
-      ]
-    }
-  ]
-}
+ {
+   "libraries": [
+     {
+       "file": "/home/ubuntu/libisolator.so",
+       "modules": [
+         {
+           "name": "com_clusterhq_flocker_FlockerIsolator",
+           "parameters": [
+             {
+               "key": "ipaddress",
+               "value": "$MASTER"
+             },
+             {
+               "key": "port",
+               "value": "4523"
+             }
+           ]
+         }
+       ]
+     }
+   ]
+ }

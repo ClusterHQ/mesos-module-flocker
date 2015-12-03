@@ -73,6 +73,12 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     }
     LOG(INFO) << "Parsed env vars" << endl;
 
+    // If the user dir already exists, bail out.
+    if (os::exists(envVars->getUserDir().get())) {
+        LOG(ERROR) << "User dir already exists. Stopping to prevent data loss. " << envVars->getUserDir().get();
+        return Failure("User dir already exists");
+    }
+
     // *****************
     // Send REST command to Flocker to get the current Flocker node ID
     Try<std::string> nodeId = flockerControlServiceClient->getNodeId();
@@ -120,22 +126,11 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
             }
         }
 
-        // If the user dir doesn't exist on the host, create.
-        if (!os::exists(envVars->getUserDir().get())) {
-            Try<Nothing> mkdir = os::mkdir(envVars->getUserDir().get());
-            if (mkdir.isError()) {
-                LOG(ERROR) << "Failed to create the target of the mount at '" +
-                              envVars->getUserDir().get() << "': " << mkdir.error();
-                return process::Failure("Failed to create the target of the mount");
-            }
-        } else {
-            LOG(WARNING) << "The user directory already exists.";
-        }
-
         // *****************
-        // Bind user directory to Flocker volume≠
+        // Symlink to the flocker dir
+        // sudo ln -s /flocker/7dfae970-fb3f-4ca3-8d9a-a93271d8f1e3 /tmp/data
         Try<std::string> retcode = os::shell("%s %s %s",
-                                             "mount --rbind", // Do we need -n here? Do we want it to appear in /etc/mtab?
+                                             "ln -s", // Do we need -n here? Do we want it to appear in /etc/mtab?
                                              flockerDir.c_str(),
                                              envVars->getUserDir().get().c_str());
 
@@ -164,7 +159,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
             std::cerr << "Could not parse JSON" << endl;
             return Failure("Could not move dataset node if for container: " + containerId.value());
         }
-        LOG(INFO) << "Parsed JSON: " << parse.get() << endl;        
+        LOG(INFO) << "Parsed JSON: " << parse.get() << endl;
     }
 
     return None();
