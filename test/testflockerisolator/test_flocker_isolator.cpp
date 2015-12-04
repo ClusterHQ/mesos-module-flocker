@@ -152,7 +152,7 @@ TEST_F(FlockerIsolatorTest, TestParseNodeId) {
 }
 
 TEST_F(FlockerIsolatorTest, TestParseDataSet) {
-    Try<string> json = Try<string>::some("[{\"dataset_id\": \"a5f75af7-3fb9-4c1a-81ce-efeeb9f2c788\", \"primary\": \"e66d949c-ae91-4446-9115-824722a1e4b0\", \"metadata\": { \"FLOCKER_ID\": \"123\"}, \"deleted\": false}]");
+    Try<string> json = Try<string>::some("[{\"dataset_id\": \"a5f75af7-3fb9-4c1a-32132-efeeb9f2c788\", \"primary\": \"e66d949c-ae91-6542-9115-824722a1e4b0\", \"metadata\": {}, \"deleted\": false}, {\"dataset_id\": \"a5f75af7-3fb9-4c1a-81ce-efeeb9f2c788\", \"primary\": \"e66d949c-ae91-4446-9115-824722a1e4b0\", \"metadata\": { \"FLOCKER_ID\": \"123\"}, \"deleted\": false}]");
 
     FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80, ipUtils);
 

@@ -115,8 +115,11 @@ Option<string> FlockerControlServiceClient::parseDataSet(Try<string> jsonDataSet
             continue;
         }
 
-        const Result<JSON::String> &flockerIdValue = metadata->find<JSON::String>("FLOCKER_ID");
 
+        const Result<JSON::String> &flockerIdValue = metadata->find<JSON::String>("FLOCKER_ID");
+        if (flockerIdValue.isNone()) {
+            continue;
+        }
         LOG(INFO) << "Found metadata " << metadata.get() << endl;
 
         if (flockerIdValue.get() == flockerId) {
