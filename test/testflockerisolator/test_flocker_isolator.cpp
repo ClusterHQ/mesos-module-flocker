@@ -172,3 +172,11 @@ TEST_F(FlockerIsolatorTest, TestBuildNodesCommand) {
 
     ASSERT_EQ(nodesCommand, "curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://192.168.1.101:80/v1/state/nodes");
 }
+
+TEST_F(FlockerIsolatorTest, TestBuildDataSetsCommand) {
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80, ipUtils);
+
+    string dataSetsCommand = client->buildDataSetsCommand();
+
+    ASSERT_EQ(dataSetsCommand, "curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://192.168.1.101:80/v1/configuration/datasets");
+}

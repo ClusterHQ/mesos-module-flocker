@@ -40,6 +40,8 @@ public:
 
     string buildNodesCommand() const;
 
+    string buildDataSetsCommand() const;
+
 private:
 
     std::string flockerControlIp;
