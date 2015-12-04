@@ -5,7 +5,7 @@
 #include <stout/try.hpp>
 #include <stout/uuid.hpp>
 #include <glog/logging.h>
-
+#include "IpUtils.hpp"
 
 using namespace std;
 
@@ -18,11 +18,11 @@ class FlockerControlServiceClient
 {
 public:
 
-    FlockerControlServiceClient(const string flockerControlIp, uint16_t flockerControlPort);
+    FlockerControlServiceClient(const string flockerControlIp, uint16_t flockerControlPort, IpUtils *ipUtils);
 
     virtual Try<string> getNodeId();
 
-    virtual Try<string> createDataSet(UUID uuid);
+    virtual Try<string> createDataSet(UUID uuid, string flockerId);
 
     uint16_t getFlockerControlPort();
 
@@ -32,13 +32,19 @@ public:
 
     Try<string> parseNodeId(Try<string> jsonNodes);
 
-private:
+    Option<string> getDataSetForFlockerId(string flockerId);
 
-    string getIpAddress();
+    Option<string> parseDataSet(Try<string> aTry, string flockerId);
+
+    Try<string> moveDataSet(string option, UUID uuid);
+
+private:
 
     std::string flockerControlIp;
 
     uint16_t flockerControlPort;
+
+    IpUtils *ipUtils;
 
 };
 

@@ -1,4 +1,6 @@
 #include "flocker_control_service_client.hpp"
+#include "IpUtils.hpp"
+#include "FlockerEnvironmentalVariables.h"
 
 #include <stout/format.hpp>
 
@@ -15,36 +17,18 @@
 
 using namespace std;
 
-FlockerControlServiceClient::FlockerControlServiceClient(const string flockerControlIp, uint16_t flockerControlPort) {
+FlockerControlServiceClient::FlockerControlServiceClient(const string flockerControlIp, uint16_t flockerControlPort, IpUtils *ipUtils) {
     this->flockerControlIp      = flockerControlIp;
     this->flockerControlPort    = flockerControlPort;
+    this->ipUtils               = ipUtils;
 }
 
-
-string FlockerControlServiceClient::getIpAddress() {
-    int fd;
-    struct ifreq ifr;
-
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    /* I want to get an IPv4 IP address */
-    ifr.ifr_addr.sa_family = AF_INET;
-
-    /* I want IP address attached to "eth0" */
-    strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
-
-    ioctl(fd, SIOCGIFADDR, &ifr);
-
-    close(fd);
-
-    return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-}
-
-Try<string> FlockerControlServiceClient::createDataSet(UUID uuid) {
-    return os::shell(
-            "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key -d '{\"primary\": \"" +
-            uuid.toString() + "\"}' https://" + flockerControlIp + ":" + stringify(flockerControlPort) +
-            "/v1/configuration/datasets");
+Try<string> FlockerControlServiceClient::createDataSet(UUID uuid, string flockerId) {
+    string command = "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key -d '{\"primary\": \"" +
+                     uuid.toString() + "\", \"metadata\": { \"" + FlockerEnvironmentalVariables::FLOCKER_ID + "\": \"" + flockerId + "\" }}' https://" + flockerControlIp + ":" + stringify(flockerControlPort) +
+                     "/v1/configuration/datasets";
+    LOG(INFO) << "Create command: " << command;
+    return os::shell(command);
 }
 
 uint16_t FlockerControlServiceClient::getFlockerControlPort() {
@@ -73,6 +57,18 @@ Try<string> FlockerControlServiceClient::getNodeId() {
     return parseNodeId(curlCommand);
 }
 
+Option<string> FlockerControlServiceClient::getDataSetForFlockerId(string flockerId) {
+    Try<string> curlCommand = os::shell("curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" + flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets");
+    return parseDataSet(curlCommand.get(), flockerId);
+}
+
+Try<string> FlockerControlServiceClient::moveDataSet(string dataSet, const UUID nodeId) {
+    string command = "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" +
+                     flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets/" + dataSet + " -d '{ \"primary\": \"" + nodeId.toString() + "\"}'";
+    LOG(INFO) << "Move command: " << command;
+    return os::shell(command);
+}
+
 Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes) {
     Try<JSON::Array> nodeArray = JSON::parse<JSON::Array>(jsonNodes.get());
     if (!nodeArray.isSome()) {
@@ -80,7 +76,9 @@ Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes)
         return Error("Could not parse JSON");
     }
 
-    const string &ipAddress = getIpAddress();
+    const string &ipAddress = ipUtils->getIpAddress();
+
+    LOG(INFO) << "Node IP address is: " << ipAddress << endl;
 
     for (int j = 0; j < nodeArray->values.size(); ++j) {
         JSON::Value value = nodeArray.get().values[j];
@@ -88,8 +86,7 @@ Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes)
 
         LOG(INFO) << object << endl;
 
-        const char *path = "host";
-        const Result<JSON::String> &result = object.find<JSON::String>(path);
+        const Result<JSON::String> &result = object.find<JSON::String>("host");
         LOG(INFO) << result.get() << endl;
 
         if (result.get() == ipAddress) {
@@ -97,8 +94,42 @@ Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes)
             std::string nodeId = nodeResult.get().value;
             return Try<string>::some(nodeId);
         }
-
     }
 
     return Error("Unable to find node ID for node: " + ipAddress);
+}
+
+Option<string> FlockerControlServiceClient::parseDataSet(Try<string> jsonDataSets, string flockerId) {
+    Try<JSON::Array> nodeArray = JSON::parse<JSON::Array>(jsonDataSets.get());
+    if (!nodeArray.isSome()) {
+        std::cerr << "Could not parse JSON" << nodeArray.get() << endl;
+        return Option<string>::none();
+    }
+
+    for (int j = 0; j < nodeArray->values.size(); ++j) {
+        JSON::Value value = nodeArray.get().values[j];
+        const JSON::Object &object = value.as<JSON::Object>();
+
+        LOG(INFO) << object << endl;
+
+        const Result<JSON::Object> &metadata = object.find<JSON::Object>("metadata");
+
+        if (metadata.isNone()) {
+            continue;
+        }
+
+
+        const Result<JSON::String> &flockerIdValue = metadata->find<JSON::String>("FLOCKER_ID");
+        if (flockerIdValue.isNone()) {
+            continue;
+        }
+        LOG(INFO) << "Found metadata " << metadata.get() << endl;
+
+        if (flockerIdValue.get() == flockerId) {
+            std::string dataSetId = object.find<JSON::String>("dataset_id").get().value;
+            return Option<string>::some(dataSetId);
+        }
+    }
+
+    return Option<string>::none();
 }

@@ -8,7 +8,7 @@ class MockFlockerControlServiceClient : public FlockerControlServiceClient
 {
 public:
 
-    MockFlockerControlServiceClient(const string ip, uint16_t port) : FlockerControlServiceClient(ip,port) {
+    MockFlockerControlServiceClient(const string ip, uint16_t port, IpUtils *ipUtils) : FlockerControlServiceClient(ip,port,ipUtils) {
 
     }
 
