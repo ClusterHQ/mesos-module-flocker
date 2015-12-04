@@ -51,8 +51,9 @@ FlockerEnvironmentalVariables::FlockerEnvironmentalVariables(const ExecutorInfo 
         this->parseError = true;
     }
     if (this->getUserFlockerId().isNone()) {
-        LOG(WARNING)
+        LOG(ERROR)
         << FlockerEnvironmentalVariables::FLOCKER_ID
         << " not specified. You will not be able to migrate data on failover.";
+        this->parseError = true;
     }
 }
