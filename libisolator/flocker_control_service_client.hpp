@@ -22,7 +22,7 @@ public:
 
     virtual Try<string> getNodeId();
 
-    virtual Try<string> createDataSet(UUID uuid);
+    virtual Try<string> createDataSet(UUID uuid, string flockerId);
 
     uint16_t getFlockerControlPort();
 
