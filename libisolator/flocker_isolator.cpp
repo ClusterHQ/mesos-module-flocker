@@ -105,17 +105,14 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
             LOG(INFO) << "Created dataset: " << datasetJson.get() << endl;
         }
 
-        Try<JSON::Object> parse = JSON::parse<JSON::Object>(datasetJson.get());
-        if (parse.isError()) {
-            std::cerr << "Could not parse JSON" << endl;
-            return Failure("Could not create node if for container: " + containerId.value());
-        }
-        LOG(INFO) << "Parsed JSON: " << parse.get() << endl;
+        LOG(INFO) << "Parsing dataset UUID: " << datasetJson.get() << endl;
+        datasetUUID = flockerControlServiceClient->getFlockerDataSetUUID(datasetJson.get());
+        LOG(INFO) << "Parsed dataset UUID: " << datasetUUID.get() << " to mount";
 
         // Determine the source of the mount.
         std::string flockerDir = path::join("/flocker", datasetUUID.get()); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
 
-        LOG(INFO) << "Waiting for" << datasetUUID.get() << "to mount";
+        LOG(INFO) << "Waiting for " << datasetUUID.get() << " to mount";
 
         // *****************
         // Wait for the flocker dataset to mount
