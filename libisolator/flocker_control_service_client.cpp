@@ -120,7 +120,7 @@ Option<string> FlockerControlServiceClient::parseDataSet(Try<string> jsonDataSet
         LOG(INFO) << "Found metadata " << metadata.get() << endl;
 
         if (flockerIdValue.get() == flockerId) {
-            std::string dataSetId = flockerIdValue.get().value;
+            std::string dataSetId = object.find<JSON::String>("dataset_id").get().value;
             return Option<string>::some(dataSetId);
         }
     }
