@@ -42,6 +42,8 @@ public:
 
     string buildDataSetsCommand() const;
 
+    string buildMoveDataSetCommand(const string dataSet, const UUID nodeId) const;
+
 private:
 
     std::string flockerControlIp;

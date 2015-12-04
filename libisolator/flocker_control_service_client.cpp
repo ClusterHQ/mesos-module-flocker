@@ -71,9 +71,13 @@ string FlockerControlServiceClient::buildDataSetsCommand() const {
 }
 
 Try<string> FlockerControlServiceClient::moveDataSet(string dataSet, const UUID nodeId) {
-    return os::shell(
-            "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" +
-            flockerControlIp + ":" + stringify(flockerControlPort) + " /v1/configuration/datasets/" + dataSet + "-d { \"primary:\" \"" + nodeId.toString() + "\"  \"}");
+    const string command = buildMoveDataSetCommand(dataSet, nodeId);
+    return os::shell(command);
+}
+
+string FlockerControlServiceClient::buildMoveDataSetCommand(const string dataSet, const UUID nodeId) const {
+    return "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" +
+           flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets/" + dataSet + " -d { \"primary\": \"" + nodeId.toString() + "\" }";
 }
 
 Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes) {
