@@ -63,9 +63,10 @@ Option<string> FlockerControlServiceClient::getDataSetForFlockerId(string flocke
 }
 
 Try<string> FlockerControlServiceClient::moveDataSet(string dataSet, const UUID nodeId) {
-    return os::shell(
-            "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" +
-            flockerControlIp + ":" + stringify(flockerControlPort) + " /v1/configuration/datasets/" + dataSet + "-d { \"primary:\" \"" + nodeId.toString() + "\"  \"}");
+    string command = "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" +
+                     flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets/" + dataSet + " -d '{ \"primary\": \"" + nodeId.toString() + "\"}'";
+    LOG(INFO) << "Move command: " << command;
+    return os::shell(command);
 }
 
 Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes) {
