@@ -1,5 +1,6 @@
 #include "flocker_control_service_client.hpp"
 #include "IpUtils.hpp"
+#include "FlockerEnvironmentalVariables.h"
 
 #include <stout/format.hpp>
 
@@ -23,10 +24,11 @@ FlockerControlServiceClient::FlockerControlServiceClient(const string flockerCon
 }
 
 Try<string> FlockerControlServiceClient::createDataSet(UUID uuid, string flockerId) {
-    return os::shell(
-            "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key -d '{\"primary\": \"" +
-            uuid.toString() + "\", \"metadata\": { \"" + flockerId + "\" }\"}' https://" + flockerControlIp + ":" + stringify(flockerControlPort) +
-            "/v1/configuration/datasets");
+    string command = "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key -d '{\"primary\": \"" +
+                     uuid.toString() + "\", \"metadata\": { \"" + FlockerEnvironmentalVariables::FLOCKER_ID + "\": \"" + flockerId + "\" }}' https://" + flockerControlIp + ":" + stringify(flockerControlPort) +
+                     "/v1/configuration/datasets";
+    LOG(INFO) << "Create command: " << command;
+    return os::shell(command);
 }
 
 uint16_t FlockerControlServiceClient::getFlockerControlPort() {
