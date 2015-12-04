@@ -1,6 +1,5 @@
 #include "flocker_control_service_client.hpp"
 #include "IpUtils.hpp"
-#include "FlockerEnvironmentalVariables.h"
 
 #include <stout/format.hpp>
 
@@ -53,20 +52,34 @@ string FlockerControlServiceClient::getFlockerDataSetUUID(string json) {
 }
 
 Try<string> FlockerControlServiceClient::getNodeId() {
-    Try<string> curlCommand = os::shell("curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" + flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/state/nodes");
+    Try<string> curlCommand = os::shell(buildNodesCommand());
     return parseNodeId(curlCommand);
 }
 
+string FlockerControlServiceClient::buildNodesCommand() const {
+    return "curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" +
+           flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/state/nodes";
+}
+
 Option<string> FlockerControlServiceClient::getDataSetForFlockerId(string flockerId) {
-    Try<string> curlCommand = os::shell("curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" + flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets");
+    Try<string> curlCommand = os::shell(buildDataSetsCommand());
     return parseDataSet(curlCommand.get(), flockerId);
 }
 
+string FlockerControlServiceClient::buildDataSetsCommand() const {
+    return "curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" +
+           flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets";
+}
+
 Try<string> FlockerControlServiceClient::moveDataSet(string dataSet, const UUID nodeId) {
-    string command = "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" +
-                     flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets/" + dataSet + " -d '{ \"primary\": \"" + nodeId.toString() + "\"}'";
+    const string command = buildMoveDataSetCommand(dataSet, nodeId);
     LOG(INFO) << "Move command: " << command;
     return os::shell(command);
+}
+
+string FlockerControlServiceClient::buildMoveDataSetCommand(const string dataSet, const UUID nodeId) const {
+    return "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://" +
+           flockerControlIp + ":" + stringify(flockerControlPort) + "/v1/configuration/datasets/" + dataSet + " -d { \"primary\": \"" + nodeId.toString() + "\" }";
 }
 
 Try<string> FlockerControlServiceClient::parseNodeId(Try<std::string> jsonNodes) {

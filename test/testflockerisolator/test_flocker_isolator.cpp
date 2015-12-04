@@ -164,3 +164,30 @@ TEST_F(FlockerIsolatorTest, TestParseDataSet) {
 
     ASSERT_EQ(dataSet.get(), "a5f75af7-3fb9-4c1a-81ce-efeeb9f2c788");
 }
+
+TEST_F(FlockerIsolatorTest, TestBuildNodesCommand) {
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80, ipUtils);
+
+    string nodesCommand = client->buildNodesCommand();
+
+    ASSERT_EQ(nodesCommand, "curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://192.168.1.101:80/v1/state/nodes");
+}
+
+TEST_F(FlockerIsolatorTest, TestBuildDataSetsCommand) {
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80, ipUtils);
+
+    string dataSetsCommand = client->buildDataSetsCommand();
+
+    ASSERT_EQ(dataSetsCommand, "curl -XGET -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://192.168.1.101:80/v1/configuration/datasets");
+}
+
+TEST_F(FlockerIsolatorTest, TestBuildMoveDataSetCommand) {
+    FlockerControlServiceClient *client = new FlockerControlServiceClient("192.168.1.101", 80, ipUtils);
+
+    string dataSet  = "123";
+    string nodeId   = "a5f75af7-3fb9-4c1a-81ce-efeeb9f2c788";
+
+    string dataSetsCommand = client->buildMoveDataSetCommand(dataSet, UUID::fromString(nodeId));
+
+    ASSERT_EQ(dataSetsCommand, "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key https://192.168.1.101:80/v1/configuration/datasets/123 -d { \"primary\": \"a5f75af7-3fb9-4c1a-81ce-efeeb9f2c788\" }");
+}
