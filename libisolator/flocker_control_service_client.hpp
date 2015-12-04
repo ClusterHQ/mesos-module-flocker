@@ -38,6 +38,8 @@ public:
 
     Try<string> moveDataSet(string option, UUID uuid);
 
+    string buildNodesCommand() const;
+
 private:
 
     std::string flockerControlIp;
