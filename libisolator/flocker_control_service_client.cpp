@@ -23,10 +23,11 @@ FlockerControlServiceClient::FlockerControlServiceClient(const string flockerCon
 }
 
 Try<string> FlockerControlServiceClient::createDataSet(UUID uuid, string flockerId) {
-    return os::shell(
-            "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key -d '{\"primary\": \"" +
-            uuid.toString() + "\", \"metadata\": { \"" + flockerId + "\" }\"}' https://" + flockerControlIp + ":" + stringify(flockerControlPort) +
-            "/v1/configuration/datasets");
+    string command = "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key -d '{\"primary\": \"" +
+                     uuid.toString() + "\", \"metadata\": { \"" + FlockerEnvironmentalVariables::FLOCKER_ID + "\": \"" + flockerId + "\" }}' https://" + flockerControlIp + ":" + stringify(flockerControlPort) +
+                     "/v1/configuration/datasets";
+    LOG(INFO) << "Create command: " << command;
+    return os::shell(command);
 }
 
 uint16_t FlockerControlServiceClient::getFlockerControlPort() {
@@ -72,6 +73,7 @@ string FlockerControlServiceClient::buildDataSetsCommand() const {
 
 Try<string> FlockerControlServiceClient::moveDataSet(string dataSet, const UUID nodeId) {
     const string command = buildMoveDataSetCommand(dataSet, nodeId);
+    LOG(INFO) << "Move command: " << command;
     return os::shell(command);
 }
 

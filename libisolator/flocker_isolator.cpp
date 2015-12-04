@@ -73,10 +73,14 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     }
     LOG(INFO) << "Parsed env vars" << endl;
 
-    // If the user dir already exists, bail out.
+    // If the user dir already exists, try and delete. If it doesn't delete, bail out.
     if (os::exists(envVars->getUserDir().get())) {
-        LOG(ERROR) << "User dir already exists. Stopping to prevent data loss. " << envVars->getUserDir().get();
-        return Failure("User dir already exists");
+        LOG(WARNING) << "Attempting to delete previous symlink on: " << envVars->getUserDir().get() << endl;
+        os::rm(envVars->getUserDir().get());
+        if (os::exists(envVars->getUserDir().get())) {
+            LOG(ERROR) << "User dir already exists. Stopping to prevent data loss. " << envVars->getUserDir().get();
+            return Failure("User dir already exists");
+        }
     }
 
     // *****************
@@ -93,74 +97,67 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     const Option<string> &flockerId = envVars->getUserFlockerId();
 
     Option<string> datasetUUID = flockerControlServiceClient->getDataSetForFlockerId(flockerId.get());
-    
+    Try<std::string> datasetJson = "";
+
     if (datasetUUID.isNone()) {
         // *****************
         // Send REST command to Flocker to create a new dataset
-        Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(nodeUUIDString, flockerId.get());
+        datasetJson = flockerControlServiceClient->createDataSet(nodeUUIDString, flockerId.get());
         if (datasetJson.isError()) {
             std::cerr << "Could not create dataset for container: " << containerId << endl;
             return Failure("Could not create dataset for container: " + containerId.value());
         } else {
             LOG(INFO) << "Created dataset: " << datasetJson.get() << endl;
         }
-
-        LOG(INFO) << "Parsing dataset UUID: " << datasetJson.get() << endl;
-        datasetUUID = flockerControlServiceClient->getFlockerDataSetUUID(datasetJson.get());
-        LOG(INFO) << "Parsed dataset UUID: " << datasetUUID.get() << " to mount";
-
-        // Determine the source of the mount.
-        std::string flockerDir = path::join("/flocker", datasetUUID.get()); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
-
-        LOG(INFO) << "Waiting for " << datasetUUID.get() << " to mount";
-
-        // *****************
-        // Wait for the flocker dataset to mount
-        unsigned long watchdog = 0;
-        while ((!os::exists(flockerDir))) {
-            usleep(1000000); // Sleep for 1 s.
-            if (watchdog++ > 60) {
-                LOG(ERROR) << "Flocker did not mount within 60 s" << containerId << endl;
-                return Failure("Flocker did not mount within 60 s: " + containerId.value());
-            }
-        }
-
-        // *****************
-        // Symlink to the flocker dir
-        // sudo ln -s /flocker/7dfae970-fb3f-4ca3-8d9a-a93271d8f1e3 /tmp/data
-        Try<std::string> retcode = os::shell("%s %s %s",
-                                             "ln -s", // Do we need -n here? Do we want it to appear in /etc/mtab?
-                                             flockerDir.c_str(),
-                                             envVars->getUserDir().get().c_str());
-
-        if (retcode.isError()) {
-            LOG(ERROR) << "ln -s" << " failed to execute on "
-            << flockerDir
-            << retcode.error();
-        } else {
-            LOG(INFO) << "ln -s" << " symlinked on:"
-            << flockerDir
-            << " "
-            << envVars->getUserDir().get();
-
-        }
     } else {
         // *****************
         // Send REST command to Flocker to move dataset
-        Try<std::string> datasetJson = flockerControlServiceClient->moveDataSet(datasetUUID.get(), nodeUUIDString);
+        datasetJson = flockerControlServiceClient->moveDataSet(datasetUUID.get(), nodeUUIDString);
         if (datasetJson.isError()) {
             std::cerr << "Could not move dataset for container: " << containerId << endl;
             return Failure("Could not move dataset for container: " + containerId.value());
         } else {
             LOG(INFO) << "Moved dataset: " << datasetJson.get() << endl;
         }
+    }
 
-        Try<JSON::Object> parse = JSON::parse<JSON::Object>(datasetJson.get());
-        if (parse.isError()) {
-            std::cerr << "Could not parse JSON" << endl;
-            return Failure("Could not move dataset node if for container: " + containerId.value());
+    LOG(INFO) << "Parsing dataset UUID: " << datasetJson.get() << endl;
+    datasetUUID = flockerControlServiceClient->getFlockerDataSetUUID(datasetJson.get());
+    LOG(INFO) << "Parsed dataset UUID: " << datasetUUID.get() << " to mount";
+
+    // Determine the source of the mount.
+    std::string flockerDir = path::join("/flocker", datasetUUID.get()); // This should be the returned flocker ID: /flocker/${FLOCKER_UUID}
+
+    LOG(INFO) << "Waiting for " << datasetUUID.get() << " to mount";
+
+    // *****************
+    // Wait for the flocker dataset to mount
+    unsigned long watchdog = 0;
+    while ((!os::exists(flockerDir))) {
+        usleep(1000000); // Sleep for 1 s.
+        if (watchdog++ > 60) {
+            LOG(ERROR) << "Flocker did not mount within 60 s" << containerId << endl;
+            return Failure("Flocker did not mount within 60 s: " + containerId.value());
         }
-        LOG(INFO) << "Parsed JSON: " << parse.get() << endl;
+    }
+
+    // *****************
+    // Symlink to the flocker dir
+    // sudo ln -s /flocker/7dfae970-fb3f-4ca3-8d9a-a93271d8f1e3 /tmp/data
+    Try<std::string> retcode = os::shell("%s %s %s",
+                                         "ln -s", // Do we need -n here? Do we want it to appear in /etc/mtab?
+                                         flockerDir.c_str(),
+                                         envVars->getUserDir().get().c_str());
+
+    if (retcode.isError()) {
+        LOG(ERROR) << "ln -s" << " failed to execute on "
+        << flockerDir
+        << retcode.error();
+    } else {
+        LOG(INFO) << "ln -s" << " symlinked on:"
+        << flockerDir
+        << " "
+        << envVars->getUserDir().get();
     }
 
     return None();
