@@ -22,10 +22,10 @@ FlockerControlServiceClient::FlockerControlServiceClient(const string flockerCon
     this->ipUtils               = ipUtils;
 }
 
-Try<string> FlockerControlServiceClient::createDataSet(UUID uuid) {
+Try<string> FlockerControlServiceClient::createDataSet(UUID uuid, string flockerId) {
     return os::shell(
             "curl -XPOST -H \"Content-Type: application/json\" --cacert /etc/flocker/cluster.crt --cert /etc/flocker/plugin.crt --key /etc/flocker/plugin.key -d '{\"primary\": \"" +
-            uuid.toString() + "\"}' https://" + flockerControlIp + ":" + stringify(flockerControlPort) +
+            uuid.toString() + "\", \"metadata\": { \"" + flockerId + "\" }\"}' https://" + flockerControlIp + ":" + stringify(flockerControlPort) +
             "/v1/configuration/datasets");
 }
 

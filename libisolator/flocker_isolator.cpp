@@ -97,7 +97,7 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     if (datasetUUID.isNone()) {
         // *****************
         // Send REST command to Flocker to create a new dataset
-        Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(nodeUUIDString);
+        Try<std::string> datasetJson = flockerControlServiceClient->createDataSet(nodeUUIDString, flockerId.get());
         if (datasetJson.isError()) {
             std::cerr << "Could not create dataset for container: " << containerId << endl;
             return Failure("Could not create dataset for container: " + containerId.value());
