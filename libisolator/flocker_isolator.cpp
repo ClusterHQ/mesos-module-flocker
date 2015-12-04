@@ -73,10 +73,14 @@ Future<Option<ContainerPrepareInfo>>  FlockerIsolator::prepare(
     }
     LOG(INFO) << "Parsed env vars" << endl;
 
-    // If the user dir already exists, bail out.
+    // If the user dir already exists, try and delete. If it doesn't delete, bail out.
     if (os::exists(envVars->getUserDir().get())) {
-        LOG(ERROR) << "User dir already exists. Stopping to prevent data loss. " << envVars->getUserDir().get();
-        return Failure("User dir already exists");
+        LOG(WARNING) << "Attempting to delete previous symlink on: " << envVars->getUserDir().get() << endl;
+        os::rm(envVars->getUserDir().get());
+        if (os::exists(envVars->getUserDir().get())) {
+            LOG(ERROR) << "User dir already exists. Stopping to prevent data loss. " << envVars->getUserDir().get();
+            return Failure("User dir already exists");
+        }
     }
 
     // *****************
