@@ -112,6 +112,7 @@ For example:
 - You have to delete datasets manually
 - We have only tested with this dockerfile to build and running on the cluster created by https://github.com/philwinder/mesos-flocker-terraform
 - This does not work with the docker containerizer, because the docker containerizer does not call any of Mesos's hooks or isolators. See: https://issues.apache.org/jira/browse/MESOS-2840
+- If you reuse a FLOCKER_ID of a dataset that has been deleted, it will fail trying to reconnect to a deleted dataset
 
 ## Whats Next
 
