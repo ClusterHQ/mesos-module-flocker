@@ -47,6 +47,8 @@ rm -rf ./build ./bin
 mkdir build
 docker run -it --env MESOS_ROOT=/mesos -v ./build:/build containersol/mesos-modules-dev:14.04 sh -c 'cd /build ; cmake . ; make ; ./build/test_flocker_isolator'
 ```
+## Testing
+To run the tests, first build the project then run the application `./build/test_flocker_isolator`. This will run through the gtests in the test folder.
 
 ## Installing on Mesos
 We have also provided a set of terraform/bash scripts to install a mesos cluster with a working flocker configuration. If you need help creating a cluster, definitely check this out: https://github.com/philwinder/mesos-flocker-terraform
