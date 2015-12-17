@@ -8,7 +8,7 @@ Enable storage managed by Flocker to be consumed by tasks launched on mesos slav
 
 ## Architecture
 
-![screen shot](https://raw.github.com/clusterhq/mesos-module-flocker/master/img/mesos-flocker-isolator.png "fig 1. overview")
+![screen shot](https://raw.github.com/clusterhq/mesos-module-flocker/master/img/Flocker_visualization_800x600_v3.jpg "fig 1. overview")
 
 
 ## Design Decisions
