@@ -1,5 +1,6 @@
 #include "flocker_control_service_client.hpp"
 #include "IpUtils.hpp"
+#include "FlockerEnvironmentalVariables.h"
 
 #include <stout/format.hpp>
 
