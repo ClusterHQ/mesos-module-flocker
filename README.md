@@ -47,6 +47,17 @@ rm -rf ./build ./bin
 mkdir build
 docker run -it --env MESOS_ROOT=/mesos -v ./build:/build containersol/mesos-modules-dev:14.04 sh -c 'cd /build ; cmake . ; make ; ./build/test_flocker_isolator'
 ```
+
+### Customizing the Mesos Version
+To customize the linked Mesos version, specify an argument when building the docker container:
+```
+sudo docker build  --build-arg version=<mesos version> -t containersol/mesos-modules-dev:14.04 .
+```
+For example, for Mesos version 0.27.0:
+```
+sudo docker build  --build-arg version=0.27.0 -t containersol/mesos-modules-dev:14.04 .
+```
+
 ## Testing
 To run the tests, first build the project then run the application `./build/test_flocker_isolator`. This will run through the gtests in the test folder.
 
