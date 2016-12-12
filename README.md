@@ -85,7 +85,7 @@ printf com_clusterhq_flocker_FlockerIsolator | sudo tee /etc/mesos-slave/isolati
 sudo service mesos-slave restart
 ```
 ## Running your stateful application
-To use flocker as a backend, you must pass several environmental variables along with your applicaiton. Note that this does not work with the Mesos Docker containerizer, since it is not implemented. See: https://issues.apache.org/jira/browse/MESOS-2840. If you want to run a docker container, run it from the cmd (see example).
+To use flocker as a backend, you must pass several environmental variables along with your application. Note that this does not work with the Mesos Docker containerizer, since it is not implemented. See: https://issues.apache.org/jira/browse/MESOS-2840. If you want to run a docker container, run it from the cmd (see example).
 
 ```
     "FLOCKER_CONTAINER_VOLUME_PATH": The path that the stateful application will write to
